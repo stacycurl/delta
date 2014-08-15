@@ -1,0 +1,4 @@
+delta
+=====
+
+Type safe delta
