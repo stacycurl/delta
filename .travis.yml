@@ -1,0 +1,26 @@
+language: scala
+
+scala:
+- 2.10.2
+
+jdk:
+- openjdk6
+
+branches:
+  only:
+  - master
+
+script:
+- sbt ++$TRAVIS_SCALA_VERSION clean test
+- sbt ++$TRAVIS_SCALA_VERSION clean scoverage:test
+
+after_success:
+- sbt ++$TRAVIS_SCALA_VERSION clean $(if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME" == "$(jdk_switcher home openjdk6)" ]]; then echo "publish"; fi)
+#- sbt ++$TRAVIS_SCALA_VERSION scalastyleGenerateConfig scalastyle
+
+env:
+  global:
+  # travis encrypt -r stacycurl/pimpathon SONATYPE_USERNAME=<USERNAME>
+  - secure: "GtMoVDw4EdbHc1TKyinx4BbtvtiyZWp0DS5fi6tUNzrqajihpj0d6sxPLMupYyKJnQtBZBpLmxtrfRmyeIyuS3Oz1OkapHy06grLJl4Eb1fHmi5OwcDY/Q96E2mFdR2a4NH0WZ596gxUvmT26DXVsDyvbJFhgCGqhYDV8BKD9l8="
+  # travis encrypt -r stacycurl/pimpathon SONATYPE_PASSWORD=<PASSWORD>
+  - secure: "OaekiCfTPKOCzTvxj9dbKDelmwIScYmuATNZ+2qJ/ilJTkBvsPdJJFoeMpDDC6/Z+43UZfVreU23Gkh8NidLaGO9KbqmD8si64nPrO8UVyUv9vn36tviseDAN8HAzxM8Mt9YC+sx5Z5v1ZhYLmXg6c1PoQgWrURG2uNsZe+BGJw="
