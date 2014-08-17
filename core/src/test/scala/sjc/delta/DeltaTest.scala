@@ -91,7 +91,7 @@ class DeltaTest extends Spec with ScalazMatchers {
 
     val lens = Lens.lensu[HasInt, Int]({ case (hasInt, int) => hasInt.copy(i = int) }, _.i)
 
-    implicit val hasIntDelta = Delta[Int].delta.lens(lens)
+    implicit val hasIntDelta = Delta[Int].lens(lens)
 
     HasInt(1).delta(HasInt(2)) must equal(1.delta(2))
   }
@@ -130,12 +130,9 @@ class DeltaTest extends Spec with ScalazMatchers {
     import sjc.delta.Delta.std.map.equalA._
     import sjc.delta.Delta.std.map.showA._
     import sjc.delta.Delta.hlist._
-
-    implicit val hasIntDelta = Delta.generic(Generic[HasInt])
+    import sjc.delta.Delta.generic._
 
     HasInt(1).delta(HasInt(2)).toList must equal(List(1.delta(2)))
-
-    implicit val mapAndIntDelta = Delta.generic(Generic[MapAndInt])
 
     val actual = MapAndInt(1, beforeM).delta(MapAndInt(2, afterM))
 
@@ -150,7 +147,7 @@ class DeltaTest extends Spec with ScalazMatchers {
   }
 
   "can map over delta" in {
-    implicit val intDeltaAsString: Delta[Int, String] = Delta.std.int.deltaInt.map(_.toString)
+    implicit val intDeltaAsString: Delta.Aux[Int, String] = Delta.std.int.deltaInt.map(_.toString)
 
     1.delta(2) must equal("1")
   }
