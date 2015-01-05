@@ -1,5 +1,7 @@
 package sjc.delta
 
+import scala.language.implicitConversions
+
 import scalaz.{Equal, Lens, Show, \/, -\/, \/-}
 import shapeless._
 
@@ -56,8 +58,8 @@ object Delta {
         new Delta[Either[L, R]] {
           type Out = EitherPatch[L, R, LOut, ROut]
 
-          def apply(before: Either[L, R], after: Either[L, R]): EitherPatch[L, R, LOut, ROut] = {
-            (before, after) match {
+          def apply(ebefore: Either[L, R], eafter: Either[L, R]): EitherPatch[L, R, LOut, ROut] = {
+            (ebefore, eafter) match {
               case (Left(before),  Left(after))  => BothLeft[LOut](ldelta(before, after))
               case (Right(before), Right(after)) => BothRight[ROut](rdelta(before, after))
               case (Left(before),  Right(after)) => WasLeft(before, after)
@@ -72,8 +74,8 @@ object Delta {
       ): Delta.Aux[\/[L, R], EitherPatch[L, R, LOut, ROut]] = new Delta[L \/ R] {
         type Out = EitherPatch[L, R, LOut, ROut]
 
-        def apply(before: L \/ R, after: L \/ R): EitherPatch[L, R, LOut, ROut] = {
-          (before, after) match {
+        def apply(ebefore: L \/ R, eafter: L \/ R): EitherPatch[L, R, LOut, ROut] = {
+          (ebefore, eafter) match {
             case (-\/(before), -\/(after)) => BothLeft[LOut](ldelta(before, after))
             case (\/-(before), \/-(after)) => BothRight[ROut](rdelta(before, after))
             case (-\/(before), \/-(after)) => WasLeft(before, after)
@@ -138,7 +140,7 @@ object Delta {
   }
 
   object hlist {
-    implicit val hnILDelta: Delta.Aux[HNil, HNil] = new Delta[HNil] {
+    implicit val hnilDelta: Delta.Aux[HNil, HNil] = new Delta[HNil] {
       type Out = HNil
 
       def apply(before: HNil, after: HNil): HNil = HNil
@@ -150,13 +152,13 @@ object Delta {
       }
     }
 
-    implicit def HConsDelta[H, T <: HList, HOut, TOut <: HList](
-      implicit deltaH: Delta.Aux[H, HOut], deltaT: Delta.Aux[T, TOut]
-    ): Delta.Aux[H :: T, HOut :: TOut] = new Delta[H :: T] {
-      type Out = HOut :: TOut
+    implicit def hconsDelta[H, T <: HList](
+      implicit deltaH: Delta[H], deltaT: Lazy[Delta[T] { type Out <: HList }]
+    ): Delta.Aux[H :: T, deltaH.Out :: deltaT.value.Out] = new Delta[H :: T] {
+      type Out = deltaH.Out :: deltaT.value.Out
 
       def apply(before: H :: T, after: H :: T): Out = {
-        deltaH(before.head, after.head) :: deltaT(before.tail, after.tail)
+        deltaH.apply(before.head, after.head) :: deltaT.value.apply(before.tail, after.tail)
       }
     }
   }

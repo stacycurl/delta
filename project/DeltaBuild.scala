@@ -22,8 +22,9 @@ object DeltaBuild extends Build {
     base = file("core"),
     settings = commonSettings ++ Publishing.settings ++ Seq(
       libraryDependencies ++= Seq(
-        "com.chuusai" % "shapeless_2.10.2"   % "2.0.0",
-        "org.scalaz"  %% "scalaz-core" % "7.1.0"
+        "com.chuusai" % "shapeless_2.10.4" % "2.1.0-SNAPSHOT",
+        "org.scalaz"  %% "scalaz-core" % "7.1.0",
+        compilerPlugin("org.scalamacros" % "paradise_2.10.4" % "2.0.1")
       )
     )
   )
@@ -50,7 +51,7 @@ object DeltaBuild extends Build {
   // scalariformSettings ++
   scalaStyleSettings ++ instrumentSettings ++ Seq(
     organization := "com.github.stacycurl",
-    scalaVersion := "2.10.2",
+    scalaVersion := "2.10.4",
     maxErrors := 1,
     parallelExecution in Test := true,
     scalacOptions := Seq(
@@ -62,6 +63,7 @@ object DeltaBuild extends Build {
       "-deprecation",
       "-unchecked"
     ),
+    resolvers += Resolver.sonatypeRepo("snapshots"),
     libraryDependencies ++= Seq(
       "org.specs2"      % "specs2_2.10"               % "2.4" % "test",
       //"org.scalacheck" %% "scalacheck"                % "1.10.1" % "test",

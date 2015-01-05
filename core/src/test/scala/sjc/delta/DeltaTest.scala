@@ -5,7 +5,6 @@ import scalaz.{Equal, Lens, Show, \/}
 import shapeless._
 
 import scalaz.std.either._
-import shapeless.TypeClass.deriveConstructors
 
 
 class DeltaTest extends Spec with ScalazMatchers {
@@ -100,13 +99,9 @@ class DeltaTest extends Spec with ScalazMatchers {
     import sjc.delta.Delta.std.int._
     import sjc.delta.Delta.hlist._
 
-    val delta = (1 :: 10 :: HNil).delta(2 :: 20 :: HNil).toList
+    (1 :: 10 :: HNil).delta(3 :: 30 :: HNil) must equal(1.delta(3) :: 10.delta(30) :: HNil)
 
-    delta must equal(List(1.delta(2), 10.delta(20)))
-
-    val result = (1 :: 10 :: HNil).zipWith(2 :: 20 :: HNil)(deltaPoly).toList
-
-    result must equal(List(1.delta(2), 10.delta(20)))
+    (1 :: 10 :: HNil).zipWith(3 :: 30 :: HNil)(deltaPoly) must equal(1.delta(3) :: 10.delta(30) :: HNil)
   }
 
   "coproduct delta" in {
@@ -132,12 +127,9 @@ class DeltaTest extends Spec with ScalazMatchers {
     import sjc.delta.Delta.hlist._
     import sjc.delta.Delta.generic._
 
-    HasInt(1).delta(HasInt(2)).toList must equal(List(1.delta(2)))
+    HasInt(1).delta(HasInt(2)) must equal(1.delta(2) :: HNil)
 
-    val actual = MapAndInt(1, beforeM).delta(MapAndInt(2, afterM))
-
-    actual.head must equal(1.delta(2))
-    actual.tail.head must equal(expectedM)
+    MapAndInt(1, beforeM).delta(MapAndInt(2, afterM)) must equal(1.delta(2) :: expectedM :: HNil)
   }
 
   "create delta from function" in {
@@ -209,6 +201,9 @@ class DeltaTest extends Spec with ScalazMatchers {
 
     recurse(c0)
   })
+
+  implicit def hlistEqual[L <: HList]: Equal[L] = Equal.equalA[L]
+  implicit def hlistShow[L <: HList]: Show[L] = Show.showA[L]
 }
 
 // vim: expandtab:ts=2:sw=2

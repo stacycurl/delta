@@ -81,7 +81,7 @@ abstract class Sonatype(build: Build) {
     publishTo <<= version((v: String) => Some( if (v.trim endsWith "SNAPSHOT") ossSnapshots else ossStaging)),
     publishArtifact in Test := false,
     pomIncludeRepository := (_ => false),
-    pomExtra <<= (scalaVersion)(generatePomExtra)
+    pomExtra <<= scalaVersion(generatePomExtra)
   )
 
   lazy val credentialsSetting = credentials += {
