@@ -23,7 +23,6 @@ object DeltaBuild extends Build {
     settings = commonSettings ++ Publishing.settings ++ Seq(
       libraryDependencies ++= Seq(
         "com.chuusai" % "shapeless_2.10.4" % "2.1.0-SNAPSHOT",
-        "org.scalaz"  %% "scalaz-core" % "7.1.0",
         compilerPlugin("org.scalamacros" % "paradise_2.10.4" % "2.0.1")
       )
     )

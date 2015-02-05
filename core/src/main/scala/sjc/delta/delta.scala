@@ -1,9 +1,10 @@
 package sjc.delta
 
-import scala.language.implicitConversions
+import java.util.concurrent.atomic.AtomicInteger
 
-import scalaz.{Equal, Lens, Show, \/, -\/, \/-}
 import shapeless._
+
+import scala.language.implicitConversions
 
 
 trait Delta[In] {
@@ -11,10 +12,8 @@ trait Delta[In] {
 
   def apply(before: In, after: In): Out
 
-  def lens[Container](lens: Lens[Container, In]): Delta.Aux[Container, Out] =
-    new LensDelta[Container, In, Out](lens, this)
-
   def map[B](f: Out => B): Delta.Aux[In, B] = new MappedDelta[In, Out, B](f, this)
+  def contramap[B](f: B => In): Delta.Aux[B, Out] = new ContramappedDelta[In, Out, B](f, this)
 }
 
 object Delta {
@@ -25,21 +24,59 @@ object Delta {
   def from[In] = new From[In]
 
   class From[In] {
+    def curried[Out](f: In => In => Out): Delta.Aux[In, Out] = apply(Function.uncurried(f))
     def apply[Out](f: (In, In) => Out): Delta.Aux[In, Out] = new FunctionDelta[In, Out](f)
-  }
-
-  object generic {
-    implicit def generic[In, Repr, Out0](
-      implicit gen: Generic.Aux[In, Repr], genDelta: Delta.Aux[Repr, Out0]
-    ): Delta.Aux[In, Out0] = new Delta[In] {
-      type Out = Out0
-
-      def apply(before: In, after: In): Out = genDelta(gen.to(before), gen.to(after))
-    }
   }
 
   implicit class DeltaOps[In](val before: In) extends AnyVal {
     def delta(after: In)(implicit delta: Delta[In]): delta.Out = delta(before, after)
+  }
+
+  object fallback {
+    implicit def fallbackDelta[A]: Aux[A, (A, A)] = new Delta[A] {
+      type Out = (A, A)
+
+      override def apply(before: A, after: A): (A, A) = (before, after)
+    }
+  }
+
+  val indentation = new AtomicInteger(0)
+
+  def indent[A](f: => A): A = {
+    indentation.incrementAndGet()
+    val result = f
+    indentation.decrementAndGet()
+    result
+  }
+
+  def log(msg: String): Unit = println((" " * indentation.get()) + msg)
+
+  implicit def generic[In, Repr](
+    implicit gen: Generic.Aux[In, Repr], genDelta: Lazy[Delta[Repr]]
+  ): Delta.Aux[In, genDelta.value.Out] = new Delta[In] {
+    type Out = genDelta.value.Out
+
+    def apply(before: In, after: In): Out = indent {
+      val gBefore: Repr = gen.to(before)
+      val gAfter: Repr = gen.to(after)
+
+      log(s"$before → $gBefore")
+      log(s"$after → $gAfter")
+
+      val result = genDelta.value(gBefore, gAfter)
+      log(s"delta($before, $after) = $result")
+      result
+    }
+  }
+
+  object function {
+    implicit def function1Delta[A, B](
+      implicit delta: Lazy[Delta[B]]
+    ): Delta.Aux[A => B, A => delta.value.Out] = new Delta[A => B] {
+      type Out = A => delta.value.Out
+
+      override def apply(before: A => B, after: A => B): Out = (a: A) => delta.value(before(a), after(a))
+    }
   }
 
   object std {
@@ -69,21 +106,6 @@ object Delta {
         }
       }
 
-      implicit def deltaV[L, R, LOut, ROut](
-        implicit ldelta: Delta.Aux[L, LOut], rdelta: Delta.Aux[R, ROut]
-      ): Delta.Aux[\/[L, R], EitherPatch[L, R, LOut, ROut]] = new Delta[L \/ R] {
-        type Out = EitherPatch[L, R, LOut, ROut]
-
-        def apply(ebefore: L \/ R, eafter: L \/ R): EitherPatch[L, R, LOut, ROut] = {
-          (ebefore, eafter) match {
-            case (-\/(before), -\/(after)) => BothLeft[LOut](ldelta(before, after))
-            case (\/-(before), \/-(after)) => BothRight[ROut](rdelta(before, after))
-            case (-\/(before), \/-(after)) => WasLeft(before, after)
-            case (\/-(before), -\/(after)) => WasRight(before, after)
-          }
-        }
-      }
-
       trait EitherPatch[+L, +R, +LOut, +ROut]
       case class BothLeft[LOut](out: LOut) extends EitherPatch[Nothing, Nothing, LOut, Nothing]
       case class BothRight[ROut](out: ROut) extends EitherPatch[Nothing, Nothing, Nothing, ROut]
@@ -106,16 +128,6 @@ object Delta {
         }
       }
 
-      object equalA {
-        implicit def mapPatchEqualA[K, V, VOut]: Equal[MapPatch[K, V, VOut]] =
-          Equal.equalA[MapPatch[K, V, VOut]]
-      }
-
-      object showA {
-        implicit def mapPatchShowA[K, V, VOut]:  Show[MapPatch[K, V, VOut]]  =
-          Show.showA[MapPatch[K, V, VOut]]
-      }
-
       case class MapPatch[K, V, VOut](added: Map[K, V], removed: Map[K, V], changed: Map[K, VOut])
     }
 
@@ -127,73 +139,66 @@ object Delta {
           SetPatch[A](added = after -- before, removed = before -- after)
       }
 
-      object equalA {
-        implicit def setPatchEqualA[A]: Equal[SetPatch[A]] = Equal.equalA[SetPatch[A]]
-      }
-
-      object showA {
-        implicit def setPatchShowA[A]: Show[SetPatch[A]]   = Show.showA[SetPatch[A]]
-      }
-
       case class SetPatch[A](added: Set[A], removed: Set[A])
     }
   }
 
-  object hlist {
-    implicit val hnilDelta: Delta.Aux[HNil, HNil] = new Delta[HNil] {
-      type Out = HNil
+  implicit val hnilDelta: Delta.Aux[HNil, HNil] = new Delta[HNil] {
+    type Out = HNil
 
-      def apply(before: HNil, after: HNil): HNil = HNil
+    def apply(before: HNil, after: HNil): HNil = HNil
+  }
+
+  implicit def hconsDelta[H, T <: HList](
+    implicit deltaH: Lazy[Delta[H]], deltaT: Lazy[Delta[T] { type Out <: HList }]
+  ): Delta.Aux[H :: T, deltaH.value.Out :: deltaT.value.Out] = new Delta[H :: T] {
+    type Out = deltaH.value.Out :: deltaT.value.Out
+
+    def apply(before: H :: T, after: H :: T): Out = {
+      deltaH.value.apply(before.head, after.head) :: deltaT.value.apply(before.tail, after.tail)
     }
+  }
+/*
+  implicit def optionDelta[T](
+    implicit deltaT: Lazy[Delta[T]]
+  ): Delta.Aux[Option[T], Option[deltaT.value.Out] :+: T :+: T :+: CNil] = new Delta[Option[T]] {
+    type Out = Option[deltaT.value.Out] :+: T :+: T :+: CNil
 
-    object deltaPoly extends Poly2 {
-      implicit def delta[In](implicit delta: Delta[In]) = at[In, In] {
-        case (before, after) => delta(before, after)
-      }
+    def apply(before: Option[T], after: Option[T]): Out = (before, after) match {
+      case (None, None)       => Inl(None)
+      case (Some(b), Some(a)) => Inl(Some(deltaT.value.apply(b, a)))
+      case (Some(b), None)    => Inr(Inl(b))
+      case (None, Some(a))    => Inr(Inr(Inl(a)))
     }
+  }
+*/
+  private type CPatch[H, HOut, T <: Coproduct, TOut <: Coproduct] =
+    (HOut :+: (H, T) :+: (T, H) :+: CNil) :+: TOut
 
-    implicit def hconsDelta[H, T <: HList](
-      implicit deltaH: Delta[H], deltaT: Lazy[Delta[T] { type Out <: HList }]
-    ): Delta.Aux[H :: T, deltaH.Out :: deltaT.value.Out] = new Delta[H :: T] {
-      type Out = deltaH.Out :: deltaT.value.Out
+  implicit val deltaCNil: Delta.Aux[CNil, CNil] = new Delta[CNil] {
+    type Out = CNil
 
-      def apply(before: H :: T, after: H :: T): Out = {
-        deltaH.apply(before.head, after.head) :: deltaT.value.apply(before.tail, after.tail)
-      }
+    def apply(before: CNil, after: CNil): CNil = before
+  }
+
+  implicit def deltaCoproduct[H, T <: Coproduct](
+    implicit hDelta: Delta[H], tDelta: Lazy[Delta[T] { type Out <: Coproduct }]
+  ): Delta.Aux[H :+: T, CPatch[H, hDelta.Out, T, tDelta.value.Out]] = new Delta[H :+: T] {
+    type Out = CPatch[H, hDelta.Out, T, tDelta.value.Out]
+
+    def apply(before: H :+: T, after: H :+: T): CPatch[H, hDelta.Out, T, tDelta.value.Out] = (before, after) match {
+      case (Inl(lBefore), Inl(lAfter)) => Inl(Inl(hDelta(lBefore, lAfter)))
+      case (Inr(rBefore), Inr(rAfter)) => Inr(tDelta.value(rBefore, rAfter))
+      case (Inl(lBefore), Inr(rAfter)) => Inl(Inr(Inl((lBefore, rAfter))))
+      case (Inr(rBefore), Inl(lAfter)) => Inl(Inr(Inr(Inl((rBefore, lAfter)))))
     }
   }
 
-  object coproduct {
-    private type CPatch[H, HOut, T <: Coproduct, TOut <: Coproduct] =
-      (HOut :+: (H, T) :+: (T, H) :+: CNil) :+: TOut
-
-    implicit val deltaCNil: Delta.Aux[CNil, CNil] = new Delta[CNil] {
-      type Out = CNil
-
-      def apply(before: CNil, after: CNil): CNil = before
-    }
-
-    implicit def deltaCoproduct[H, T <: Coproduct, HOut, TOut <: Coproduct](
-      implicit hDelta: Delta.Aux[H, HOut], tDelta: Delta.Aux[T, TOut]
-    ): Delta.Aux[H :+: T, CPatch[H, HOut, T, TOut]] = new Delta[H :+: T] {
-      type Out = CPatch[H, HOut, T, TOut]
-
-      def apply(before: H :+: T, after: H :+: T): CPatch[H, HOut, T, TOut] = (before, after) match {
-        case (Inl(lBefore), Inl(lAfter)) => Inl(Inl(hDelta(lBefore, lAfter)))
-        case (Inr(rBefore), Inr(rAfter)) => Inr(tDelta(rBefore, rAfter))
-        case (Inl(lBefore), Inr(rAfter)) => Inl(Inr(Inl((lBefore, rAfter))))
-        case (Inr(rBefore), Inl(lAfter)) => Inl(Inr(Inr(Inl((rBefore, lAfter)))))
-      }
+  object deltaPoly extends Poly2 {
+    implicit def delta[In](implicit delta: Delta[In]) = at[In, In] {
+      case (before, after) => delta(before, after)
     }
   }
-}
-
-private class LensDelta[Container, In, Out0](lens: Lens[Container, In], delta: Delta.Aux[In, Out0])
-  extends Delta[Container] {
-
-  type Out = Out0
-
-  def apply(left: Container, right: Container): Out = delta(lens.get(left), lens.get(right))
 }
 
 private class FunctionDelta[In, Out0](f: (In, In) => Out0) extends Delta[In] {
@@ -206,6 +211,12 @@ private class MappedDelta[A, B, C](f: B => C, delta: Delta.Aux[A, B]) extends De
   type Out = C
 
   def apply(left: A, right: A): Out = f(delta(left, right))
+}
+
+private class ContramappedDelta[A, B, C](f: C => A, delta: Delta.Aux[A, B]) extends Delta[C] {
+  type Out = B
+
+  def apply(left: C, right: C): Out = delta(f(left), f(right))
 }
 
 // vim: expandtab:ts=2:sw=2
