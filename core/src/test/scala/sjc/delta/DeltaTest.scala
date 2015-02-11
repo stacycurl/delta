@@ -95,7 +95,6 @@ class DeltaTest extends Spec with ScalazMatchers {
     (1 :: 10 :: HNil).zipWith(3 :: 30 :: HNil)(deltaPoly) must equal(1.delta(3) :: 10.delta(30) :: HNil)
   }
 
-/*
   "coproduct delta" in {
     import sjc.delta.Delta.std.int._
 
@@ -104,12 +103,11 @@ class DeltaTest extends Spec with ScalazMatchers {
     type E  = Int :+: Int :+: Int :+: CNil
     type EP = CPatch[Int, Int :+: Int :+: CNil] :+: CPatch[Int, Int :+: CNil] :+: CPatch[Int, CNil] :+: CNil
 
-    (Inl(2): E).delta(Inl(10): E) must equal(Inl(Inl(8)): EP)
+    (Inl(2): E).delta(Inl(10): E)           must equal(Inl(Inl(8)): EP)
     (Inr(Inl(10)): E).delta(Inr(Inl(2)): E) must equal(Inr(Inl(Inl((-8)))): EP)
-    (Inl(2): E).delta(Inr(Inl(10)): E) must equal(Inl(Inr(Inl((2, Inl(10))))): EP)
-    (Inr(Inl(2)): E).delta(Inl(10): E) must equal(Inl(Inr(Inr(Inl((Inl(2), 10))))): EP)
+    (Inl(2): E).delta(Inr(Inl(10)): E)      must equal(Inl(Inr(Inl((2, Inl(10))))): EP)
+    (Inr(Inl(2)): E).delta(Inl(10): E)      must equal(Inl(Inr(Inr(Inl((Inl(2), 10))))): EP)
   }
-  */
 
   "create delta from function" in {
     implicit val doubleDelta = Delta.from[Double] { case (before, after) => after - before }
