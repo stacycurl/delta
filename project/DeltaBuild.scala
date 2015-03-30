@@ -10,31 +10,18 @@ import scoverage.ScoverageSbtPlugin.ScoverageKeys._
 
 
 object DeltaBuild extends Build {
-  lazy val delta = Project(
-    id = "delta-parent",
-    base = file("."),
-    settings = commonSettings,
-    aggregate = Seq(deltaCore, deltaExamples)
+  lazy val delta = (project in file(".")
+    aggregate core
+    settings(commonSettings: _*)
   )
 
-  lazy val deltaCore = Project(
-    id = "delta-core",
-    base = file("core"),
-    settings = commonSettings ++ Publishing.settings ++ Seq(
-      libraryDependencies ++= Seq(
-        "com.chuusai" % "shapeless_2.10.4" % "2.1.0",
-        compilerPlugin("org.scalamacros" % "paradise_2.10.4" % "2.0.1")
-      )
-    )
-  )
-
-  lazy val deltaExamples = Project(
-    id = "delta-examples",
-    base = file("examples"),
-    dependencies = Seq(deltaCore),
-    settings = commonSettings ++ Seq(
-      runAllIn(Compile)
-    )
+  lazy val core = (project in file("core")
+    settings(commonSettings: _*)
+    settings(Publishing.settings: _*)
+    settings(libraryDependencies ++= Seq(
+      "com.chuusai" % "shapeless_2.10.4" % "2.1.0",
+      compilerPlugin("org.scalamacros" % "paradise_2.10.4" % "2.0.1")
+    ))
   )
 
   lazy val runAll = TaskKey[Unit]("run-all")
