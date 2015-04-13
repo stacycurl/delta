@@ -49,7 +49,7 @@ object Delta {
     result
   }
 
-  def log(msg: String): Unit = println((" " * indentation.get()) + msg)
+//  def log(msg: String): Unit = println((" " * indentation.get()) + msg)
 
   implicit def generic[In, Repr](
     implicit gen: Generic.Aux[In, Repr], genDelta: Lazy[Delta[Repr]]
@@ -60,11 +60,11 @@ object Delta {
       val gBefore: Repr = gen.to(before)
       val gAfter: Repr = gen.to(after)
 
-      log(s"$before → $gBefore")
-      log(s"$after → $gAfter")
+//      log(s"$before → $gBefore")
+//      log(s"$after → $gAfter")
 
       val result = genDelta.value(gBefore, gAfter)
-      log(s"delta($before, $after) = $result")
+//      log(s"delta($before, $after) = $result")
       result
     }
   }

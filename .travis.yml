@@ -1,7 +1,7 @@
 language: scala
 
 scala:
-- 2.10.4
+- 2.11.6
 
 jdk:
 - openjdk6
@@ -13,7 +13,7 @@ branches:
 before_script: ./project/bintray.sh
 
 script:
-- sbt ++$TRAVIS_SCALA_VERSION clean test $(if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME" == "$(jdk_switcher home openjdk6)" ]]; then echo "publish"; fi) scoverage:test
+- sbt ++$TRAVIS_SCALA_VERSION clean test $(if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME" == "$(jdk_switcher home openjdk6)" ]]; then echo "publish"; fi) coverage test
 
 env:
   global:

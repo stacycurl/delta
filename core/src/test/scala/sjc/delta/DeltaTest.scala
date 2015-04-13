@@ -1,27 +1,28 @@
 package sjc.delta
 
-import org.specs2.execute.{Success, Failure, Result, AsResult}
-import org.specs2.matcher.Matcher
-import org.specs2.scalaz.{Spec, ScalazMatchers}
+import scala.language.existentials
+
+import org.junit.Test
+
 import scalaz.{Equal, Lens, Show, \/}
 import shapeless._
 
 import scalaz.std.either._
 
 
-class DeltaTest extends Spec with ScalazMatchers {
+class DeltaTest {
+  import SpecyOps._
+
   import scalaz.std.AllInstances._
   import sjc.delta.Delta._
 
-  "int delta" should {
-    "return an int" in {
-      import sjc.delta.Delta.std.int._
+  @Test def `int delta`(): Unit ={
+    import sjc.delta.Delta.std.int._
 
-      10.delta(2) must equal(-8)
-    }
+    10.delta(2) shouldEqual -8
   }
 
-  "either delta" in {
+  @Test def `either delta`(): Unit = {
     import Delta.std.int._
     import Delta.std.either._
 
@@ -35,13 +36,13 @@ class DeltaTest extends Spec with ScalazMatchers {
     def wasLeft(l: Int, r: Int): EP = WasLeft[Int, Int](l, r)
     def wasRight(r: Int, l: Int): EP = WasRight[Int, Int](r, l)
 
-    left(2).delta(left(10))   must equal(bothLeft(8))
-    right(2).delta(right(10)) must equal(bothRight(8))
-    left(2).delta(right(10))  must equal(wasLeft(2, 10))
-    right(2).delta(left(10))  must equal(wasRight(2, 10))
+    left(2).delta(left(10))   shouldEqual bothLeft(8)
+    right(2).delta(right(10)) shouldEqual bothRight(8)
+    left(2).delta(right(10))  shouldEqual wasLeft(2, 10)
+    right(2).delta(left(10))  shouldEqual wasRight(2, 10)
   }
 
-  "\\/ delta" in {
+  @Test def `\\/ delta`(): Unit = {
     import sjc.delta.Delta.std.int._
     import sjc.delta.Delta.std.either._
 
@@ -58,44 +59,44 @@ class DeltaTest extends Spec with ScalazMatchers {
     def wasLeft(l: Int, r: Int): EP = WasLeft[Int, Int](l, r)
     def wasRight(r: Int, l: Int): EP = WasRight[Int, Int](r, l)
 
-    left(2).delta(left(10))   must equal(bothLeft(8))
-    right(2).delta(right(10)) must equal(bothRight(8))
-    left(2).delta(right(10))  must equal(wasLeft(2, 10))
-    right(2).delta(left(10))  must equal(wasRight(2, 10))
+    left(2).delta(left(10))   shouldEqual bothLeft(8)
+    right(2).delta(right(10)) shouldEqual bothRight(8)
+    left(2).delta(right(10))  shouldEqual wasLeft(2, 10)
+    right(2).delta(left(10))  shouldEqual wasRight(2, 10)
   }
 
-  "set delta" in {
+  @Test def `set delta`(): Unit ={
     import sjc.delta.Delta.std.set._
 
     val expected = SetPatch(removed = Set(1), added = Set(3))
 
-    Set(1, 2).delta(Set(2, 3)) must equal(expected)
+    Set(1, 2).delta(Set(2, 3)) shouldEqual expected
   }
 
-  "map delta" in {
+  @Test def `map delta`(): Unit ={
     import sjc.delta.Delta.std.int._
     import sjc.delta.Delta.std.map._
 
-    beforeM.delta(afterM) must equal(expectedM)
+    beforeM.delta(afterM) shouldEqual expectedM
 
     val nested = Map("a" -> Map(1 -> 1), "b" -> beforeM).delta(Map("b" -> afterM, "c" -> Map(3 -> 3)))
 
-    nested must equal(MapPatch(
+    nested shouldEqual(MapPatch(
       added   = Map("c" -> Map(3 -> 3)),
       removed = Map("a" -> Map(1 -> 1)),
       changed = Map("b" -> expectedM)
     ))
   }
 
-  "hlist delta" in {
+  @Test def `hlist delta`(): Unit ={
     import sjc.delta.Delta.std.int._
 
-    (1 :: 10 :: HNil).delta(3 :: 30 :: HNil) must equal(1.delta(3) :: 10.delta(30) :: HNil)
+    (1 :: 10 :: HNil).delta(3 :: 30 :: HNil) shouldEqual(1.delta(3) :: 10.delta(30) :: HNil)
 
-    (1 :: 10 :: HNil).zipWith(3 :: 30 :: HNil)(deltaPoly) must equal(1.delta(3) :: 10.delta(30) :: HNil)
+    (1 :: 10 :: HNil).zipWith(3 :: 30 :: HNil)(deltaPoly) shouldEqual(1.delta(3) :: 10.delta(30) :: HNil)
   }
 
-  "coproduct delta" in {
+  @Test def `coproduct delta`(): Unit = {
     import sjc.delta.Delta.std.int._
 
     type CPatch[H, T <: Coproduct] = H :+: (H, T) :+: (T, H) :+: CNil
@@ -103,54 +104,54 @@ class DeltaTest extends Spec with ScalazMatchers {
     type E  = Int :+: Int :+: Int :+: CNil
     type EP = CPatch[Int, Int :+: Int :+: CNil] :+: CPatch[Int, Int :+: CNil] :+: CPatch[Int, CNil] :+: CNil
 
-    (Inl(2): E).delta(Inl(10): E)           must equal(Inl(Inl(8)): EP)
-    (Inr(Inl(10)): E).delta(Inr(Inl(2)): E) must equal(Inr(Inl(Inl((-8)))): EP)
-    (Inl(2): E).delta(Inr(Inl(10)): E)      must equal(Inl(Inr(Inl((2, Inl(10))))): EP)
-    (Inr(Inl(2)): E).delta(Inl(10): E)      must equal(Inl(Inr(Inr(Inl((Inl(2), 10))))): EP)
+    (Inl(2): E).delta(Inl(10): E)           shouldEqual(Inl(Inl(8)): EP)
+    (Inr(Inl(10)): E).delta(Inr(Inl(2)): E) shouldEqual(Inr(Inl(Inl((-8)))): EP)
+    (Inl(2): E).delta(Inr(Inl(10)): E)      shouldEqual(Inl(Inr(Inl((2, Inl(10))))): EP)
+    (Inr(Inl(2)): E).delta(Inl(10): E)      shouldEqual(Inl(Inr(Inr(Inl((Inl(2), 10))))): EP)
   }
 
-  "create delta from function" in {
+  @Test def `create delta from function`(): Unit = {
     implicit val doubleDelta = Delta.from[Double] { case (before, after) => after - before }
 
-    1.5.delta(2.0) must equal(0.5)
+    1.5.delta(2.0) shouldEqual 0.5
 
     implicit val stringDelta = Delta.from[String].curried(before => after => (before, after))
 
-    "foo".delta("bar") must equal(("foo", "bar"))
+    "foo".delta("bar") shouldEqual ("foo", "bar")
   }
 
-  "can map over delta" in {
+  @Test def `can map over delta`(): Unit = {
     implicit val intDeltaAsString: Delta.Aux[Int, String] = Delta.std.int.deltaInt.map(_.toString)
 
-    1.delta(3) must equal("2")
+    1.delta(3) shouldEqual "2"
   }
 
-  "can contramap over delta" in {
+  @Test def `can contramap over delta`(): Unit = {
     import sjc.delta.Delta.std.int._
 
     implicit val hasIntDelta = Delta[Int].contramap[HasInt](_.i)
 
-    HasInt(1).delta(HasInt(2)) must equal(1.delta(2))
+    HasInt(1).delta(HasInt(2)) shouldEqual 1.delta(2)
   }
 
-  "fallback delta" in {
+  @Test def `fallback delta`(): Unit = {
     import Delta.fallback._
 
-    HasInt(1).delta(HasInt(2)) must equal((HasInt(1), HasInt(2)))
+    HasInt(1).delta(HasInt(2)) shouldEqual (HasInt(1), HasInt(2))
   }
 
-  "generic delta" in {
+  @Test def `generic delta`(): Unit = {
     import sjc.delta.Delta.std.int._
     import sjc.delta.Delta.std.map._
 
-    HasInt(1).delta(HasInt(2)) must equal(1.delta(2) :: HNil)
-    MapAndInt(1, beforeM).delta(MapAndInt(2, afterM)) must equal(1.delta(2) :: expectedM :: HNil)
+    HasInt(1).delta(HasInt(2)) shouldEqual(1.delta(2) :: HNil)
+    MapAndInt(1, beforeM).delta(MapAndInt(2, afterM)) shouldEqual(1.delta(2) :: expectedM :: HNil)
 
     val actual = RecursiveProduct(1, None).delta(RecursiveProduct(3, None))
 
     val expected: ::[Aux[Int, Int]#Out, ::[Inl[Inl[HNil.type, Nothing], Nothing], HNil]] = 1.delta(3) :: Inl(Inl(HNil)) :: HNil
 
-    actual must equal(expected)
+    actual shouldEqual expected
 
     // Doesn't work yet
 //    RecursiveProduct(1, Some(RecursiveProduct(10, None))).delta(RecursiveProduct(3, Some(RecursiveProduct(30, None))))
@@ -158,7 +159,7 @@ class DeltaTest extends Spec with ScalazMatchers {
   }
 
 
-  "function delta" in {
+  @Test def `function delta`(): Unit = {
     import sjc.delta.Delta.std.int._
     import sjc.delta.Delta.function._
 
@@ -167,7 +168,7 @@ class DeltaTest extends Spec with ScalazMatchers {
 
     val delta = square.delta(cube)
 
-    delta(3) must equal(27 - 9)
+    delta(3) shouldEqual(27 - 9)
   }
 
   case class HasInt(i: Int)

@@ -19,8 +19,9 @@ object DeltaBuild extends Build {
     settings(commonSettings: _*)
     settings(Publishing.settings: _*)
     settings(libraryDependencies ++= Seq(
-      "com.chuusai" % "shapeless_2.10.4" % "2.1.0",
-      compilerPlugin("org.scalamacros" % "paradise_2.10.4" % "2.0.1")
+      "com.chuusai" %% "shapeless" % "2.1.0"
+//      "com.chuusai" % "shapeless_2.10.4" % "2.1.0",
+//      compilerPlugin("org.scalamacros" % "paradise_2.10.4" % "2.0.1")
     ))
   )
 
@@ -32,11 +33,11 @@ object DeltaBuild extends Build {
     }
   }
 
-  def commonSettings = GraphPlugin.graphSettings ++ scalaStyleSettings ++ instrumentSettings ++ Seq(
+  def commonSettings = GraphPlugin.graphSettings ++ scalaStyleSettings ++ Seq(
     organization := "com.github.stacycurl",
-    scalaVersion := "2.10.4",
+    scalaVersion := "2.11.6",
     maxErrors := 1,
-    parallelExecution in Test := true,
+    parallelExecution in Test := false,
     scalacOptions := Seq(
       "-feature",
       "-language:higherKinds",
@@ -48,14 +49,15 @@ object DeltaBuild extends Build {
     ),
     resolvers += Resolver.sonatypeRepo("snapshots"),
     libraryDependencies ++= Seq(
-      "org.specs2"      % "specs2_2.10"               % "2.4" % "test",
-      //"org.scalacheck" %% "scalacheck"                % "1.10.1" % "test",
+      "com.novocode"  % "junit-interface" % "0.11"  % "test",
+//      "org.specs2"     %% "specs2"      % "3.3.1" % "test",
+      "org.scalaz"     %% "scalaz-core" % "7.1.0" % "test"
+//      "org.scalacheck" %% "scalacheck"                % "1.10.1" % "test",
       //"org.scalaz"     %% "scalaz-scalacheck-binding" % "7.1.0"  % "test",
-      "org.typelevel"  % "scalaz-specs2_2.10"             % "0.3.0"  % "test"
+//      "org.typelevel"  % "scalaz-specs2_2.11"             % "0.3.0"  % "test"
     ),
     initialCommands in console := """import sjc.delta._""",
-    minimumCoverage := 100,
-    highlighting := true,
-    failOnMinimumCoverage := true
+    coverageMinimum := 100,
+    coverageFailOnMinimum := true
   )
 }
