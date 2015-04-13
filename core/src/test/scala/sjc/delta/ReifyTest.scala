@@ -15,8 +15,13 @@ class ReifyTest {
   import SpecyOps._
   import Reify._
 
+  @Test def `boolean reify`(): Unit = {
+    false.reify.asString shouldEqual "false"
+    true.reify.asString shouldEqual "true"
+  }
+
   @Test def `int reify`(): Unit = {
-    "123" shouldEqual 123.reify.asString
+    123.reify.asString shouldEqual "123"
   }
 
   @Test def `string reify`(): Unit = {
@@ -26,6 +31,11 @@ class ReifyTest {
   @Test def `list reify`(): Unit = {
     List(123).reify.asString shouldEqual """List(123)"""
     List("123").reify.asString shouldEqual """List("123")"""
+  }
+
+  @Test def `set reify`(): Unit = {
+    Set(123).reify.asString shouldEqual """Set(123)"""
+    Set("123").reify.asString shouldEqual """Set("123")"""
   }
 
   @Test def `map reify`(): Unit = {
@@ -57,6 +67,16 @@ class ReifyTest {
     RP("123", Some(RP("456", None, Left(444))), Right(RP("789", None, Left(777)))).reify.asString shouldEqual(
       """RP("123", Some(RP("456", None, Left(444))), Right(RP("789", None, Left(777))))"""
     )
+  }
+
+  @Test def `manual case class reify`(): Unit = {
+    ReifiedProduct.caseClass("Fred", List(ReifiedValue("123"))).asString shouldEqual "Fred(123)"
+  }
+
+  @Test def contramap(): Unit = {
+    val hasInt: Reify[HasInt] = Reify[Int].contramap[HasInt](_.i)
+
+    hasInt(HasInt(123)).asString shouldEqual "HasInt(123)"
   }
 
   case class HasInt(i: Int)

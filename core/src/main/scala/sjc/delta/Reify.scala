@@ -2,6 +2,8 @@ package sjc.delta
 
 import shapeless._
 
+import scala.reflect.ClassTag
+
 sealed trait Reified {
   def asString: String
 }
@@ -11,6 +13,7 @@ case class ReifiedValue(value: String) extends Reified {
 }
 
 object ReifiedProduct {
+  def caseClass(name: String, values: List[Reified]): Reified = ReifiedProduct(values, s"$name(", ", ", ")")
   def hlist(values: List[Reified]): Reified = ReifiedProduct(values, "", " :: ", " :: HNil")
 }
 
@@ -22,6 +25,9 @@ case class ReifiedProduct(values: List[Reified], start: String, sep: String, end
 trait Reify[A] {
   def asString(value: A): String = apply(value).asString
   def apply(value: A): Reified
+
+  def contramap[B](f: B ⇒ A, start: String = null, end: String = ")")(implicit ct: ClassTag[B]): Reify[B] =
+    new Reify.Contramapped[A, B](f, this, Option(start).getOrElse(ct.runtimeClass.getSimpleName), end)
 }
 
 object Reify {
@@ -30,6 +36,8 @@ object Reify {
   }
 
   def apply[A](implicit reify: Reify[A]): Reify[A] = reify
+
+  implicit val booleanReify: Reify[Boolean] = reifyA[Boolean]
 
   implicit val intReify: Reify[Int] = reifyA[Int]
 
@@ -43,6 +51,9 @@ object Reify {
 
   implicit def listReify[A](implicit reifyA: Reify[A]): Reify[List[A]] =
     reify[List[A]](_.map(reifyA.asString).toString)
+
+  implicit def setReify[A](implicit reifyA: Reify[A]): Reify[Set[A]] =
+    reify[Set[A]](_.map(reifyA.asString).toString)
 
   implicit def mapReify[K, V](implicit reifyK: Reify[K], reifyV: Reify[V]): Reify[Map[K, V]] =
     reify[Map[K, V]](_.map { case (k, v) ⇒ (reifyK.asString(k), reifyV.asString(v)) }.toString)
@@ -67,9 +78,15 @@ object Reify {
     }
   }
 
-  private def reifyA[A]: Reify[A] = reify[A](_.toString)
+  private class Contramapped[A, B](f: B ⇒ A, reifyA: Reify[A], start: String, end: String) extends Reify[B] {
+    def apply(value: B): Reified = ReifiedProduct(List(reifyA(f(value))), start + "(", ", ", end)
+  }
 
-  private def reify[A](f: A ⇒ String): Reify[A] = new Reify[A] {
-    def apply(value: A): Reified = ReifiedValue(f(value))
+  def reifyA[A]: Reify[A] = reify[A](_.toString)
+
+  def reify[A](f: A ⇒ String): Reify[A] = reifyIt(a ⇒ ReifiedValue(f(a)))
+
+  def reifyIt[A](f: A ⇒ Reified): Reify[A] = new Reify[A] {
+    def apply(value: A): Reified = f(value)
   }
 }
