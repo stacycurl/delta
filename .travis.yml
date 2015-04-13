@@ -10,13 +10,10 @@ branches:
   only:
   - master
 
-script:
-- sbt ++$TRAVIS_SCALA_VERSION clean test
-- sbt ++$TRAVIS_SCALA_VERSION clean scoverage:test
+before_script: ./project/bintray.sh
 
-after_success:
-- sbt ++$TRAVIS_SCALA_VERSION clean $(if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME"
-  == "$(jdk_switcher home openjdk6)" ]]; then echo "publish"; fi)
+script:
+- sbt ++$TRAVIS_SCALA_VERSION clean test $(if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME" == "$(jdk_switcher home openjdk6)" ]]; then echo "publish"; fi) scoverage:test
 
 env:
   global:
@@ -24,3 +21,5 @@ env:
   - secure: 1P4DKrY9R84I2oApx7dmp7cKv6DMHEb3qMduN4JTCV5szmj/TmQbrKmaJ0wj6yuxwuPxXTYhqwG84/Gvz15FGqENBuw1ctXz8f5Q8PU3RRHtJMSpYHCpAnwxBeS1x/nfxjbyco9WLj4s2hw6uFZ9Ax0EI9vxO73bOiIKKaLUFUA=
   # travis encrypt -r stacycurl/delta SONATYPE_PASSWORD=<PASSWORD>
   - secure: yxIKpCRhbyJNO7FnsxFKehu/t4ozq6W3jkCKAFGvltoWDGyApqgmzsmoW1ZTUrxtNhmaFaxl+9JccC/pjALa0Hizn9ZRiVGVW1eGJghPbnaZd1LR3D5gt6Qg77F++KYjK0OBpTwQdf4tYCyikgqeFMyLWl5HKWd2sSDnnySiNLg=
+  # travis encrypt -t stacycurl/delta BINTRAY_API_KEY=<BINTRAY_API_KEY>
+  - secure: seNJVJkNs//qEzfrtKY3TZuwHh6RwdrYllhWocyvl2mvH/vAgN4ya1Ikkednqg+9Cop+QLw0vbpD178DDcM+RtOLlHfA4vO2JsdeO6Elvl6fUJ9LQVZK7u2H04cRwICOsOtNgYVjxXRqp5NS0K4DzeAQDxoE4jcYiPCGN7ma2gE=

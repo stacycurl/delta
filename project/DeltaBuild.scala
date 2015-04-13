@@ -1,7 +1,6 @@
 import sbt._
 
-import com.typesafe.sbt.SbtScalariform.scalariformSettings
-import net.virtualvoid.sbt.graph.Plugin.graphSettings
+import net.virtualvoid.sbt.graph.{Plugin ⇒ GraphPlugin}
 import org.scalastyle.sbt.ScalastylePlugin.{ Settings => scalaStyleSettings }
 
 import sbt.Keys._
@@ -13,6 +12,7 @@ object DeltaBuild extends Build {
   lazy val delta = (project in file(".")
     aggregate core
     settings(commonSettings: _*)
+    settings(publish := (), publishLocal := ())
   )
 
   lazy val core = (project in file("core")
@@ -28,14 +28,11 @@ object DeltaBuild extends Build {
 
   def runAllIn(config: Configuration) = {
     runAll in config <<= (discoveredMainClasses in config, runner in run, fullClasspath in config, streams) map {
-      (classes, runner, cp, s) => classes.foreach(c => runner.run(c, Attributed.data(cp), Seq(), s.log))
+      (classes, runner, cp, s) ⇒ classes.foreach(c ⇒ runner.run(c, Attributed.data(cp), Seq(), s.log))
     }
   }
 
-  def commonSettings = graphSettings ++
-  // uncomment when you want to reset the formatting of the project
-  // scalariformSettings ++
-  scalaStyleSettings ++ instrumentSettings ++ Seq(
+  def commonSettings = GraphPlugin.graphSettings ++ scalaStyleSettings ++ instrumentSettings ++ Seq(
     organization := "com.github.stacycurl",
     scalaVersion := "2.10.4",
     maxErrors := 1,

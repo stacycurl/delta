@@ -6,7 +6,8 @@ libraryDependencies ++= Seq(
   plugin("net.virtual-void" %  "sbt-dependency-graph"  % "0.7.4"),
   plugin("com.typesafe.sbt" %  "sbt-scalariform"       % "1.3.0"),
   plugin("org.scalastyle"   %% "scalastyle-sbt-plugin" % "0.5.0"),
-  plugin("org.scoverage"    %% "sbt-scoverage"         % "0.99.7.1")
+  plugin("org.scoverage"    %% "sbt-scoverage"         % "0.99.7.1"),
+  plugin("me.lessis"        %  "bintray-sbt"           % "0.1.2")
   // https://github.com/typelevel/wartremover/issues/108
   //plugin("org.brianmckenna" %% "wartremover" % "0.9")
   // https://github.com/scoverage/sbt-coveralls/issues/18
