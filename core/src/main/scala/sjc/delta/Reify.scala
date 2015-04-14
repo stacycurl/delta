@@ -39,9 +39,17 @@ object Reify {
 
   implicit val booleanReify: Reify[Boolean] = reifyA[Boolean]
 
+  implicit val charReify: Reify[Char] = reify[Char]("'" + _ + "'")
+
+  implicit val doubleReify: Reify[Double] = reifyA[Double]
+
+  implicit val floatReify: Reify[Float] = reify[Float](_ + "F")
+
   implicit val intReify: Reify[Int] = reifyA[Int]
 
-  implicit val stringReify: Reify[String] = reify[String](s ⇒ s""""$s"""")
+  implicit val longReify: Reify[Long] = reify[Long](_ + "L")
+
+  implicit val stringReify: Reify[String] = reify[String]("\"" + _ + "\"")
 
   implicit def optionReify[A](implicit reifyA: Reify[A]): Reify[Option[A]] =
     reify[Option[A]](_.map(reifyA.asString).toString)

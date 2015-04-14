@@ -20,8 +20,24 @@ class ReifyTest {
     true.reify.asString shouldEqual "true"
   }
 
+  @Test def `char reify`(): Unit = {
+    'a'.reify.asString shouldEqual "'a'"
+  }
+
+  @Test def `double reify`(): Unit = {
+    123.456.reify.asString shouldEqual "123.456"
+  }
+
+  @Test def `float reify`(): Unit = {
+    123.456F.reify.asString shouldEqual "123.456F"
+  }
+
   @Test def `int reify`(): Unit = {
     123.reify.asString shouldEqual "123"
+  }
+
+  @Test def `long reify`(): Unit = {
+    123L.reify.asString shouldEqual "123L"
   }
 
   @Test def `string reify`(): Unit = {
