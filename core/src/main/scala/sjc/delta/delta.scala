@@ -1,10 +1,12 @@
 package sjc.delta
 
+import scala.annotation.tailrec
+import scala.language.implicitConversions
+
 import java.util.concurrent.atomic.AtomicInteger
+import scala.xml._
 
 import shapeless._
-
-import scala.language.implicitConversions
 
 
 trait Delta[In] {

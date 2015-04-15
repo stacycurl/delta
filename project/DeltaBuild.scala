@@ -19,7 +19,7 @@ object DeltaBuild extends Build {
     settings(commonSettings: _*)
     settings(Publishing.settings: _*)
     settings(libraryDependencies ++= Seq(
-      "com.chuusai" %% "shapeless" % "2.1.0"
+      "com.chuusai"          %% "shapeless"      % "2.1.0"
 //      "com.chuusai" % "shapeless_2.10.4" % "2.1.0",
 //      compilerPlugin("org.scalamacros" % "paradise_2.10.4" % "2.0.1")
     ))
@@ -47,7 +47,7 @@ object DeltaBuild extends Build {
       "-deprecation",
       "-unchecked"
     ),
-    resolvers += Resolver.sonatypeRepo("snapshots"),
+    resolvers ++= Seq(Resolver.sonatypeRepo("release"), "Stacy Curl's repo" at "http://dl.bintray.com/stacycurl/repo/"),
     libraryDependencies ++= Seq(
       "com.novocode"  % "junit-interface" % "0.11"  % "test",
 //      "org.specs2"     %% "specs2"      % "3.3.1" % "test",
