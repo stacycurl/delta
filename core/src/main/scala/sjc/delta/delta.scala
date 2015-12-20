@@ -42,33 +42,13 @@ object Delta {
     }
   }
 
-  val indentation = new AtomicInteger(0)
-
-  def indent[A](f: => A): A = {
-    indentation.incrementAndGet()
-    val result = f
-    indentation.decrementAndGet()
-    result
-  }
-
-//  def log(msg: String): Unit = println((" " * indentation.get()) + msg)
-
   implicit def generic[In, Repr](
     implicit gen: Generic.Aux[In, Repr], genDelta: Lazy[Delta[Repr]]
   ): Delta.Aux[In, genDelta.value.Out] = new Delta[In] {
     type Out = genDelta.value.Out
 
-    def apply(before: In, after: In): Out = indent {
-      val gBefore: Repr = gen.to(before)
-      val gAfter: Repr = gen.to(after)
-
-//      log(s"$before → $gBefore")
-//      log(s"$after → $gAfter")
-
-      val result = genDelta.value(gBefore, gAfter)
-//      log(s"delta($before, $after) = $result")
-      result
-    }
+    def apply(before: In, after: In): Out =
+      genDelta.value(gen.to(before), gen.to(after))
   }
 
   object function {

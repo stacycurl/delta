@@ -138,7 +138,7 @@ object xml {
   private case class Attributes(values: Map[String, String]) {
     def disjoint(other: Attributes): (Attributes, Attributes) = (this -- other, other -- this)
     def --(other: Attributes): Attributes = new Attributes(values.filterNot(other.contains))
-    def contains(kv: (String, String)): Boolean = values.exists(_ == kv)
+    def contains(kv: (String, String)): Boolean = values.get(kv._1) == Some(kv._2)
 
     def metaData: MetaData = values.foldLeft(Null: MetaData) {
       case (acc, (key, value)) ⇒ new UnprefixedAttribute(key, Text(value), acc)

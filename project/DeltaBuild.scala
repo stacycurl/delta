@@ -47,7 +47,8 @@ object DeltaBuild extends Build {
       "-deprecation",
       "-unchecked"
     ),
-    resolvers ++= Seq(Resolver.sonatypeRepo("release"), "Stacy Curl's repo" at "http://dl.bintray.com/stacycurl/repo/"),
+    //resolvers ++= Seq(Resolver.sonatypeRepo("release"), "Stacy Curl's repo" at "http://dl.bintray.com/stacycurl/repo/"),
+    resolvers ++= Seq(Resolver.sonatypeRepo("release"), "jcenter" at "https://jcenter.bintray.com"),
     libraryDependencies ++= Seq(
       "com.novocode"  % "junit-interface" % "0.11"  % "test",
 //      "org.specs2"     %% "specs2"      % "3.3.1" % "test",
