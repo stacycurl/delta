@@ -3,14 +3,13 @@ package sjc.delta.std
 import org.junit.Test
 import scalaz.{Show, Equal, \/}
 
-import sjc.delta.Delta
+import sjc.delta.{TestUtil, Delta}
 import sjc.delta.Delta.DeltaOps
-import sjc.delta.SpecyOps.SpecyOps
 import sjc.delta.std.either.{deltaEither, EitherPatch, BothLeft, BothRight, WasLeft, WasRight}
 import sjc.delta.std.int.deltaInt
 
 
-class EitherDeltaTest {
+class EitherTest extends TestUtil {
   @Test def eitherDeltaTest(): Unit = {
     type E = Either[Int, Int]
     def left(l: Int): E = Left(l)
@@ -23,6 +22,7 @@ class EitherDeltaTest {
   }
 
   @Test def \\/(): Unit = {
+    // TODO: Create a 'scalaz' module and move this definition there
     implicit def deltaV[L, R](implicit deltaEither: Delta[Either[L, R]]): Delta[L \/ R] =
       deltaEither.contramap[L \/ R](_.toEither)
 

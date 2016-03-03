@@ -10,7 +10,7 @@ import scoverage.ScoverageSbtPlugin.ScoverageKeys._
 
 object DeltaBuild extends Build {
   lazy val delta = (project in file(".")
-    aggregate core
+    aggregate(core, generic)
     settings(commonSettings: _*)
     settings(publish := (), publishLocal := ())
   )
@@ -18,10 +18,14 @@ object DeltaBuild extends Build {
   lazy val core = (project in file("core")
     settings(commonSettings: _*)
     settings(Publishing.settings: _*)
+  )
+
+  lazy val generic = (project in file("generic")
+    dependsOn core % "compile -> compile; test -> test"
+    settings(commonSettings: _*)
+    settings(Publishing.settings: _*)
     settings(libraryDependencies ++= Seq(
-      "com.chuusai"          %% "shapeless"      % "2.1.0"
-//      "com.chuusai" % "shapeless_2.10.4" % "2.1.0",
-//      compilerPlugin("org.scalamacros" % "paradise_2.10.4" % "2.0.1")
+      "com.chuusai" %% "shapeless" % "2.1.0"
     ))
   )
 
@@ -47,15 +51,10 @@ object DeltaBuild extends Build {
       "-deprecation",
       "-unchecked"
     ),
-    //resolvers ++= Seq(Resolver.sonatypeRepo("release"), "Stacy Curl's repo" at "http://dl.bintray.com/stacycurl/repo/"),
     resolvers ++= Seq(Resolver.sonatypeRepo("release"), "jcenter" at "https://jcenter.bintray.com"),
     libraryDependencies ++= Seq(
       "com.novocode"  % "junit-interface" % "0.11"  % "test",
-//      "org.specs2"     %% "specs2"      % "3.3.1" % "test",
       "org.scalaz"     %% "scalaz-core" % "7.1.0" % "test"
-//      "org.scalacheck" %% "scalacheck"                % "1.10.1" % "test",
-      //"org.scalaz"     %% "scalaz-scalacheck-binding" % "7.1.0"  % "test",
-//      "org.typelevel"  % "scalaz-specs2_2.11"             % "0.3.0"  % "test"
     ),
     initialCommands in console := """import sjc.delta._""",
     coverageMinimum := 100,

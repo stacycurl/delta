@@ -1,14 +1,14 @@
 package sjc.delta.std
 
 import org.junit.Test
+import sjc.delta.TestUtil
 import scala.xml.{Utility, Node}
 
 import sjc.delta.Delta.DeltaOps
-import sjc.delta.SpecyOps.SpecyOps
 import sjc.delta.std.xml.{nodeDelta, BeforeAfter, Missing, Extra, NodePatch, SingleNodePatch}
 
 
-class NodeDeltaTest {
+class NodeTest extends TestUtil {
   @Test def nodeDeltaTest(): Unit = {
     test(
       <abc/>,
@@ -132,5 +132,5 @@ class NodeDeltaTest {
 
 
   private def test(before: Node, after: Node, expected: SingleNodePatch*): Unit =
-    SpecyOps((before delta after).asXml).shouldEqualBy(Utility.trim, NodePatch(expected.toList).asXml)
+    (before delta after).asXml.shouldEqualBy(Utility.trim, NodePatch(expected.toList).asXml)
 }

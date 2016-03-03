@@ -4,8 +4,9 @@ import org.junit.Assert
 
 import scala.util.Try
 
-object SpecyOps {
-  implicit class SpecyOps[A](actual: A) {
+
+trait TestUtil {
+  implicit class AnyTestOps[A](actual: A) {
     def shouldEqualBy(f: A ⇒ A, expected: A): Unit = // f(a) != f(b) ⇒ a != b, and the latter fails better
       Try(Assert.assertEquals(f(expected), f(actual))).failed.foreach(_ ⇒ shouldEqual(expected))
 

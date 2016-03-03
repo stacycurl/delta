@@ -1,20 +1,11 @@
 package sjc.delta
 
 import org.junit.Test
-import scala.collection.{mutable ⇒ M}
 
-import org.junit.Assert._
-
-import shapeless.HNil
-
-import scalaz.\/
+import Reify.ReifyOps
 
 
-class ReifyTest {
-  import scalaz.std.AllInstances._
-  import SpecyOps._
-  import Reify._
-
+class ReifyTest extends TestUtil {
   @Test def `boolean reify`(): Unit = {
     false.reify.asString shouldEqual "false"
     true.reify.asString shouldEqual "true"
@@ -70,23 +61,6 @@ class ReifyTest {
     (Left("123"): Either[String, Int]).reify.asString shouldEqual """Left("123")"""
     (Right(123): Either[Int, Int]).reify.asString shouldEqual """Right(123)"""
     (Right("123"): Either[Int, String]).reify.asString shouldEqual """Right("123")"""
-  }
-
-  @Test def `hlist reify`(): Unit = {
-    (123 :: "123" :: HNil).reify.asString shouldEqual """123 :: "123" :: HNil"""
-  }
-
-  @Test def `generic reify`(): Unit = {
-    HasInt(123).reify.asString shouldEqual """HasInt(123)"""
-    MapAndInt(123, Map(123 -> "456")).reify.asString shouldEqual """MapAndInt(123, Map(123 -> "456"))"""
-
-    RP("123", Some(RP("456", None, Left(444))), Right(RP("789", None, Left(777)))).reify.asString shouldEqual(
-      """RP("123", Some(RP("456", None, Left(444))), Right(RP("789", None, Left(777))))"""
-    )
-  }
-
-  @Test def `manual case class reify`(): Unit = {
-    ReifiedProduct.caseClass("Fred", List(ReifiedValue("123"))).asString shouldEqual "Fred(123)"
   }
 
   @Test def contramap(): Unit = {
