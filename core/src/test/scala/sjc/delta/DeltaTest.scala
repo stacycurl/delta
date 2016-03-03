@@ -4,7 +4,6 @@ import scala.language.existentials
 
 import org.junit.Test
 
-import scala.xml.{Utility, Node}
 import scalaz.{Equal, Show, \/}
 import shapeless._
 
@@ -17,58 +16,15 @@ class DeltaTest {
   import scalaz.std.AllInstances._
   import sjc.delta.Delta._
 
-  @Test def intDeltaTest(): Unit ={
-    import sjc.delta.Delta.std.int._
+  @Test def intDeltaTest(): Unit = {
+    import sjc.delta.std.int._
 
     10.delta(2) shouldEqual -8
   }
 
-  @Test def eitherDeltaTest(): Unit = {
-    import Delta.std.int._
-    import Delta.std.either._
-    import eitherUtils._
-
-    type E = Either[Int, Int]
-    def left(l: Int): E = Left(l)
-    def right(r: Int): E = Right(r)
-
-    left(2).delta(left(10))   shouldEqual bothLeft(8)
-    right(2).delta(right(10)) shouldEqual bothRight(8)
-    left(2).delta(right(10))  shouldEqual wasLeft(2, 10)
-    right(2).delta(left(10))  shouldEqual wasRight(2, 10)
-  }
-
-  @Test def \\/(): Unit = {
-    import sjc.delta.Delta.std.int._
-    import sjc.delta.Delta.std.either._
-    import eitherUtils._
-
-    implicit def deltaV[L, R](implicit deltaEither: Delta[Either[L, R]]): Delta[L \/ R] =
-      deltaEither.contramap[L \/ R](_.toEither)
-
-    type E = \/[Int, Int]
-    def left(l: Int): E = \/.left[Int, Int](l)
-    def right(r: Int): E = \/.right[Int, Int](r)
-
-    left(2).delta(left(10))   shouldEqual bothLeft(8)
-    right(2).delta(right(10)) shouldEqual bothRight(8)
-    left(2).delta(right(10))  shouldEqual wasLeft(2, 10)
-    right(2).delta(left(10))  shouldEqual wasRight(2, 10)
-  }
-
-  private object eitherUtils {
-    import sjc.delta.Delta.std.either._
-
-    type EP = EitherPatch[Int, Int, Int, Int]
-
-    def bothLeft(out: Int): EP = BothLeft[Int](out)
-    def bothRight(out: Int): EP = BothRight[Int](out)
-    def wasLeft(l: Int, r: Int): EP = WasLeft[Int, Int](l, r)
-    def wasRight(r: Int, l: Int): EP = WasRight[Int, Int](r, l)
-  }
 
   @Test def setDeltaTest(): Unit ={
-    import sjc.delta.Delta.std.set._
+    import sjc.delta.std.set._
 
     val expected = SetPatch(removed = Set(1), added = Set(3))
 
@@ -76,8 +32,8 @@ class DeltaTest {
   }
 
   @Test def mapDeltaTest(): Unit ={
-    import sjc.delta.Delta.std.int._
-    import sjc.delta.Delta.std.map._
+    import sjc.delta.std.int._
+    import sjc.delta.std.map._
 
     beforeM.delta(afterM) shouldEqual expectedM
 
@@ -91,7 +47,7 @@ class DeltaTest {
   }
 
   @Test def hlistDeltaTest(): Unit ={
-    import sjc.delta.Delta.std.int._
+    import sjc.delta.std.int._
 
     (1 :: 10 :: HNil).delta(3 :: 30 :: HNil) shouldEqual(1.delta(3) :: 10.delta(30) :: HNil)
 
@@ -99,7 +55,7 @@ class DeltaTest {
   }
 
   @Test def coproductDeltaTest(): Unit = {
-    import sjc.delta.Delta.std.int._
+    import sjc.delta.std.int._
 
     type CPatch[H, T <: Coproduct] = H :+: (H, T) :+: (T, H) :+: CNil
 
@@ -123,13 +79,13 @@ class DeltaTest {
   }
 
   @Test def canMapOverDelta(): Unit = {
-    implicit val intDeltaAsString: Delta.Aux[Int, String] = Delta.std.int.deltaInt.map(_.toString)
+    implicit val intDeltaAsString: Delta.Aux[Int, String] = sjc.delta.std.int.deltaInt.map(_.toString)
 
     1.delta(3) shouldEqual "2"
   }
 
   @Test def canContramapOverDelta(): Unit = {
-    import sjc.delta.Delta.std.int._
+    import sjc.delta.std.int._
 
     implicit val hasIntDelta = Delta[Int].contramap[HasInt](_.i)
 
@@ -143,8 +99,8 @@ class DeltaTest {
   }
 
   @Test def genericDeltaTest(): Unit = {
-    import sjc.delta.Delta.std.int._
-    import sjc.delta.Delta.std.map._
+    import sjc.delta.std.int._
+    import sjc.delta.std.map._
 
     HasInt(1).delta(HasInt(2)) shouldEqual(1.delta(2) :: HNil)
     MapAndInt(1, beforeM).delta(MapAndInt(2, afterM)) shouldEqual(1.delta(2) :: expectedM :: HNil)
@@ -162,7 +118,7 @@ class DeltaTest {
 
 
   @Test def functionDeltaTest(): Unit = {
-    import sjc.delta.Delta.std.int._
+    import sjc.delta.std.int._
     import sjc.delta.Delta.function._
 
     val square = (i: Int) => i * i
@@ -173,135 +129,6 @@ class DeltaTest {
     delta(3) shouldEqual(27 - 9)
   }
 
-  @Test def nodeDeltaTest(): Unit = {
-    import sjc.delta.std.xml._
-
-    def test(before: Node, after: Node, expected: SingleNodePatch*): Unit =
-      (before delta after).asXml.shouldEqualBy(Utility.trim, NodePatch(expected.toList).asXml)
-
-
-    test(
-      <abc/>,
-      <abc/>,
-      Nil: _*
-    )
-
-    test(
-      <abc/>,
-      <def/>,
-      BeforeAfter("/", <abc/>, <def/>)
-    )
-
-    test(
-      <abc name="foo"/>,
-      <abc name="bar"/>,
-      BeforeAfter("/", <abc name="foo"/>, <abc name="bar"/>)
-    )
-
-    test(
-      <abc name="foo" def="def"/>,
-      <abc def="def" name="bar"/>,
-      BeforeAfter("/", <abc name="foo"/>, <abc name="bar"/>)
-    )
-
-    test(
-      <parent><abc/></parent>,
-      <parent><def/></parent>,
-      BeforeAfter("/parent", <abc/>, <def/>)
-    )
-
-    test(
-      <parent><child><abc/></child></parent>,
-      <parent><child><def/></child></parent>,
-      BeforeAfter("/parent/child", <abc/>, <def/>)
-    )
-
-    test(
-      <parent><abc/><def/></parent>,
-      <parent><abc/><ghi/></parent>,
-      BeforeAfter("/parent", <def/>, <ghi/>)
-    )
-
-    test(
-      <parent><def/><abc/></parent>,
-      <parent><ghi/><abc/></parent>,
-      BeforeAfter("/parent", <def/>, <ghi/>)
-    )
-
-
-    test(
-      <parent><abc/></parent>,
-      <parent></parent>,
-      Missing("/parent", <abc/>)
-    )
-
-    test(
-      <parent><abc/><def/></parent>,
-      <parent></parent>,
-      Missing.create("/parent", <abc/>, <def/>)
-    )
-
-    test(
-      <parent><abc/><def/><ghi/></parent>,
-      <parent><abc/><ghi/></parent>,
-      Missing("/parent", <def/>)
-    )
-
-
-    test(
-      <parent></parent>,
-      <parent><def/></parent>,
-      Extra("/parent", <def/>)
-    )
-
-    test(
-      <parent></parent>,
-      <parent><abc/><def/></parent>,
-      Extra.create("/parent", <abc/>, <def/>)
-    )
-
-    test(
-      <parent><abc/><ghi/></parent>,
-      <parent><abc/><def/><ghi/></parent>,
-      Extra("/parent", <def/>)
-    )
-
-
-    test(
-      <parent><first><abc/></first><second><def/></second></parent>,
-      <parent><first><ghi/></first><second><jkl/></second></parent>,
-      BeforeAfter("/parent/first",  <abc/>, <ghi/>),
-      BeforeAfter("/parent/second", <def/>, <jkl/>)
-    )
-
-    test(
-      <parent><first><abc/></first><second></second></parent>,
-      <parent><first><ghi/></first><second><jkl/></second></parent>,
-      BeforeAfter("/parent/first",  <abc/>, <ghi/>),
-      Extra("/parent/second", <jkl/>)
-    )
-
-    test(
-      <parent><first><abc/></first><second><def/></second></parent>,
-      <parent><first><ghi/></first><second></second></parent>,
-      BeforeAfter("/parent/first",  <abc/>, <ghi/>),
-      Missing("/parent/second", <def/>)
-    )
-  }
-
-  @Test def xmlPatchReduce(): Unit = {
-    import sjc.delta.std.xml._
-
-    NodePatch(List(BeforeAfter("path", <abc/>, <def/>), BeforeAfter("path", <def/>, <ghi/>))).reduce shouldEqual
-      NodePatch(List(BeforeAfter("path", <abc/>, <ghi/>)))
-
-    NodePatch(List(BeforeAfter("path", <def/>, <ghi/>), Missing("path", <ghi/>))).reduce shouldEqual
-      NodePatch(List(Missing("path", <def/>)))
-
-    NodePatch(List(BeforeAfter("path", <ghi/>, <def/>), Extra("path", <ghi/>))).reduce shouldEqual
-      NodePatch(List(Extra("path", <def/>)))
-  }
-
   case class HasInt(i: Int)
   case class MapAndInt(i: Int, m: Map[Int, Int])
   case class RecursiveProduct(i: Int, o: Option[RecursiveProduct])
@@ -309,46 +136,11 @@ class DeltaTest {
   val beforeM = Map(1 -> 1, 2 -> 2)
   val afterM  = Map(2 -> 22, 3 -> 3)
 
-  val expectedM = Delta.std.map.MapPatch(
+  val expectedM = sjc.delta.std.map.MapPatch(
     added   = Map(3 -> 3),
     removed = Map(1 -> 1),
-    changed = Map(2 -> Delta.std.int.deltaInt(2, 22))
+    changed = Map(2 -> sjc.delta.std.int.deltaInt(2, 22))
   )
-
-  import sjc.delta.Delta.std.either._
-
-  implicit def eitherPatchEqual[L, R, LOut, ROut](
-    implicit lEqual: Equal[L], rEqual: Equal[R], loutEqual: Equal[LOut], routEqual: Equal[ROut]
-  ): Equal[EitherPatch[L, R, LOut, ROut]] = new Equal[EitherPatch[L, R, LOut, ROut]] {
-    type EP = EitherPatch[L, R, LOut, ROut]
-
-    def equal(before: EP, after: EP): Boolean = (before, after) match {
-      case (BothLeft(blBefore), BothLeft(blAfter)) => {
-        loutEqual.equal(blBefore, blAfter)
-      }
-      case (BothRight(brBefore), BothRight(brAfter)) => {
-        routEqual.equal(brBefore, brAfter)
-      }
-      case (WasLeft(lBefore, rBefore), WasLeft(lAfter, rAfter)) => {
-        lEqual.equal(lBefore, lAfter) && rEqual.equal(rBefore, rAfter)
-      }
-      case (WasRight(rBefore, lBefore), WasRight(rAfter, lAfter)) => {
-        rEqual.equal(rBefore, rAfter) && lEqual.equal(lBefore, lAfter)
-      }
-      case _ => false
-    }
-  }
-
-  implicit def eitherPatchShow[L, R, LOut, ROut](
-    implicit lshow: Show[L], rshow: Show[R], loutShow: Show[LOut], routShow: Show[ROut]
-  ): Show[EitherPatch[L, R, LOut, ROut]] = new Show[EitherPatch[L, R, LOut, ROut]] {
-    override def shows(in: EitherPatch[L, R, LOut, ROut]): String = in match {
-      case BothLeft(out)         => s"BothLeft(${loutShow.show(out)})"
-      case BothRight(out)        => s"BothRight(${routShow.show(out)})"
-      case WasLeft(left, right)  => s"WasLeft(${lshow.show(left)}, ${rshow.show(right)})"
-      case WasRight(right, left) => s"WasRight(${rshow.show(right)}, S{lshow.show(left)})"
-    }
-  }
 
   implicit def coproductEqual[C <: Coproduct]: Equal[C] = Equal.equalA[C]
 
@@ -367,5 +159,3 @@ class DeltaTest {
   implicit def fallbackEqual[A]: Equal[A] = Equal.equalA[A]
   implicit def fallbackShow[A]: Show[A] = Show.showA[A]
 }
-
-// vim: expandtab:ts=2:sw=2
