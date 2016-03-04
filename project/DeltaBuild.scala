@@ -1,8 +1,5 @@
 import sbt._
 
-import net.virtualvoid.sbt.graph.{Plugin ⇒ GraphPlugin}
-import org.scalastyle.sbt.ScalastylePlugin.{ Settings => scalaStyleSettings }
-
 import sbt.Keys._
 
 
@@ -35,7 +32,7 @@ object DeltaBuild extends Build {
     }
   }
 
-  def commonSettings = GraphPlugin.graphSettings ++ scalaStyleSettings ++ Seq(
+  def commonSettings = Seq(
     organization := "com.github.stacycurl",
     scalaVersion := "2.11.6",
     maxErrors := 1,
@@ -51,8 +48,9 @@ object DeltaBuild extends Build {
     ),
     resolvers ++= Seq(Resolver.sonatypeRepo("release"), "jcenter" at "https://jcenter.bintray.com"),
     libraryDependencies ++= Seq(
-      "com.novocode"  % "junit-interface" % "0.11"  % "test",
-      "org.scalaz"     %% "scalaz-core" % "7.1.0" % "test"
+      "org.scala-lang.modules" %% "scala-xml"       % "1.0.3",
+      "com.novocode"           %  "junit-interface" % "0.11"  % "test",
+      "org.scalaz"             %% "scalaz-core"     % "7.1.0" % "test"
     ),
     initialCommands in console := """import sjc.delta._"""
   )
