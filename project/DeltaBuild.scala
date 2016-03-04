@@ -4,8 +4,6 @@ import net.virtualvoid.sbt.graph.{Plugin ⇒ GraphPlugin}
 import org.scalastyle.sbt.ScalastylePlugin.{ Settings => scalaStyleSettings }
 
 import sbt.Keys._
-import scoverage.ScoverageSbtPlugin._
-import scoverage.ScoverageSbtPlugin.ScoverageKeys._
 
 
 object DeltaBuild extends Build {
@@ -56,8 +54,6 @@ object DeltaBuild extends Build {
       "com.novocode"  % "junit-interface" % "0.11"  % "test",
       "org.scalaz"     %% "scalaz-core" % "7.1.0" % "test"
     ),
-    initialCommands in console := """import sjc.delta._""",
-    coverageMinimum := 100,
-    coverageFailOnMinimum := true
+    initialCommands in console := """import sjc.delta._"""
   )
 }
