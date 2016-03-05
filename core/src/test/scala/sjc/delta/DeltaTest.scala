@@ -4,15 +4,10 @@ import scala.language.existentials
 
 import org.junit.Test
 
-import scalaz.{Equal, Show, \/}
-
-import scalaz.std.either._
+import scalaz.{Equal, Show}
 
 
 class DeltaTest extends TestUtil {
-  import util._
-
-  import scalaz.std.AllInstances._
   import sjc.delta.Delta._
 
   @Test def intDeltaTest(): Unit = {

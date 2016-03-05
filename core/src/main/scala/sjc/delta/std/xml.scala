@@ -99,7 +99,6 @@ object xml {
   private implicit class DeltaListOps[A](list: List[A]) {
     import scala.collection.immutable.{::, List, Nil}
 
-    // delta is simpler if it has no dependencies, including the brilliant pimpathon (ahem)
     def zipExact[B](other: List[B]): (List[(A, B)], Option[Either[List[A], List[B]]]) = {
       @tailrec
       def recurse(as: List[A], bs: List[B], abs: List[(A,B)]): (List[(A,B)], Option[Either[List[A], List[B]]]) = {
@@ -138,7 +137,7 @@ object xml {
   private case class Attributes(values: Map[String, String]) {
     def disjoint(other: Attributes): (Attributes, Attributes) = (this -- other, other -- this)
     def --(other: Attributes): Attributes = new Attributes(values.filterNot(other.contains))
-    def contains(kv: (String, String)): Boolean = values.get(kv._1) == Some(kv._2)
+    def contains(kv: (String, String)): Boolean = values.get(kv._1).contains(kv._2)
 
     def metaData: MetaData = values.foldLeft(Null: MetaData) {
       case (acc, (key, value)) ⇒ new UnprefixedAttribute(key, Text(value), acc)

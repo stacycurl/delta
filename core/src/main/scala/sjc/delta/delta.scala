@@ -54,5 +54,3 @@ private class ContramappedDelta[A, B, C](f: C => A, delta: Delta.Aux[A, B]) exte
 
   def apply(left: C, right: C): Out = delta(f(left), f(right))
 }
-
-// vim: expandtab:ts=2:sw=2

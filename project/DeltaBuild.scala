@@ -5,7 +5,7 @@ import sbt.Keys._
 
 object DeltaBuild extends Build {
   lazy val delta = (project in file(".")
-    aggregate(core, generic)
+    aggregate(core, generic, argonaut)
     settings(commonSettings: _*)
     settings(publish := (), publishLocal := ())
   )
@@ -19,10 +19,16 @@ object DeltaBuild extends Build {
     dependsOn core % "compile -> compile; test -> test"
     settings(commonSettings: _*)
     settings(Publishing.settings: _*)
-    settings(libraryDependencies ++= Seq(
-      "com.chuusai" %% "shapeless" % "2.1.0"
-    ))
+    settings(libraryDependencies += "com.chuusai" %% "shapeless" % "2.1.0")
   )
+
+  lazy val argonaut = (project in file("argonaut")
+    dependsOn core % "compile -> compile; test -> test"
+    settings(commonSettings: _*)
+    settings(Publishing.settings: _*)
+    settings(libraryDependencies += "io.argonaut" %% "argonaut" % "6.1")
+  )
+
 
   lazy val runAll = TaskKey[Unit]("run-all")
 
