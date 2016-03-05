@@ -34,24 +34,14 @@ object DeltaBuild extends Build {
 
   def commonSettings = Seq(
     organization := "com.github.stacycurl",
-    scalaVersion := "2.11.6",
+    scalaVersion := "2.11.7",
     maxErrors := 1,
-    parallelExecution in Test := false,
-    scalacOptions := Seq(
-      "-feature",
-      "-language:higherKinds",
-      "-language:implicitConversions",
-      "-language:reflectiveCalls",
-      "-Xfatal-warnings",
-      "-deprecation",
-      "-unchecked"
-    ),
-    resolvers ++= Seq(Resolver.sonatypeRepo("release"), "jcenter" at "https://jcenter.bintray.com"),
+    parallelExecution in Test := true,
+    scalacOptions := Seq("-feature", "-Xfatal-warnings", "-deprecation", "-unchecked"),
     libraryDependencies ++= Seq(
       "org.scala-lang.modules" %% "scala-xml"       % "1.0.3",
       "com.novocode"           %  "junit-interface" % "0.11"  % "test",
       "org.scalaz"             %% "scalaz-core"     % "7.1.0" % "test"
-    ),
-    initialCommands in console := """import sjc.delta._"""
+    )
   )
 }

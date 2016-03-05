@@ -5,18 +5,17 @@ sudo: false
 scala:
 - 2.11.7
 
-jdk:
-- openjdk6
-
 cache:
   directories:
   - $HOME/.ivy2/cache
 
+jdk:
+- openjdk6
 
 before_script: ./project/bintray.sh
 
 script:
-- sbt clean test $(if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME" == "$(jdk_switcher home openjdk6)" ]]; then echo "publish"; fi) test
+- sbt clean compile test $(if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME" == "$(jdk_switcher home openjdk6)" ]]; then echo "publish"; fi)
 
 env:
   global:

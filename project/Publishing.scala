@@ -5,8 +5,40 @@ import bintray.Keys._
 import sbt._
 import Keys._
 
+object Publishing extends Sonatype(DeltaBuild) {
+  def projectUrl    = "https://github.com/stacycurl"
+  def developerId   = "stacycurl"
+  def developerName = "Stacy Curl"
+}
 
-object Publishing {
+abstract class Sonatype(build: Build) {
+  import build._
+
+  val ossSnapshots = "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
+  val ossStaging   = "Sonatype OSS Staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+
+  def projectUrl: String
+  def developerId: String
+  def developerName: String
+
+  def scmUrl              = projectUrl
+  def scmConnection       = "scm:git:" + scmUrl
+
+  def generatePomExtra(scalaVersion: String): xml.NodeSeq = {
+    <url>{ projectUrl }</url>
+      <scm>
+        <url>{ scmUrl }</url>
+        <connection>{ scmConnection }</connection>
+      </scm>
+      <developers>
+        <developer>
+          <id>{ developerId }</id>
+          <name>{ developerName }</name>
+        </developer>
+      </developers>
+  }
+
+  // travis ⇒ bintray, local ⇒ sonatype
   def settings: Seq[Setting[_]] = commonSettings ++ (Properties.envOrNone("BINTRAY_API_KEY") match {
     case Some(apiKey) ⇒ bintrayPublishSettings ++ Seq(
       repository in bintray := "repo",
@@ -14,7 +46,7 @@ object Publishing {
     )
     case None ⇒ Seq(
       credentialsSetting,
-      publishTo <<= version(repo),
+      publishTo <<= version((v: String) ⇒ Some(if (v.trim endsWith "SNAPSHOT") ossSnapshots else ossStaging)),
       pomIncludeRepository := (_ ⇒ false),
       pomExtra <<= scalaVersion(generatePomExtra)
     )
@@ -27,38 +59,12 @@ object Publishing {
     licenses +=("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
   )
 
-  private lazy val credentialsSetting = credentials += {
+  lazy val credentialsSetting = credentials += {
     Seq("SONATYPE_USERNAME", "SONATYPE_PASSWORD").map(k ⇒ sys.env.get(k)) match {
-      case Seq(Some(u), Some(p)) ⇒ Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", u, p)
-      case _                     ⇒ Credentials(Path.userHome / ".ivy2" / ".credentials")
+      case Seq(Some(user), Some(pass)) ⇒
+        Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", user, pass)
+      case _                           ⇒
+        Credentials(Path.userHome / ".ivy2" / ".credentials")
     }
   }
-
-  private def repo(version: String) = Some(if (version.trim endsWith "SNAPSHOT")
-    "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/" else
-    "Sonatype OSS Staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-  )
-
-  private def generatePomExtra(scalaVersion: String): xml.NodeSeq = {
-    <url>{ projectUrl }</url>
-    <licenses>
-      <license>
-        <name>Apache License</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-        <distribution>repo</distribution>
-      </license>
-    </licenses>
-    <scm>
-      <url>{ projectUrl }</url>
-      <connection>{ "scm:git:" + projectUrl }</connection>
-    </scm>
-    <developers>
-      <developer>
-        <id>stacycurl</id>
-        <name>Stacy Curl</name>
-      </developer>
-    </developers>
-  }
-
-  private val projectUrl   = "https://github.com/stacycurl"
 }
