@@ -2,11 +2,16 @@ package sjc.delta.argonaut
 
 import argonaut.{Json, Parse}
 import org.junit.Assert._
+import sjc.delta.TestUtil
 
 
-class JsonTestUtil {
+trait JsonTestUtil extends TestUtil {
+  implicit class JsonTestOps(json: Json) {
+    def jsonShouldEqual(expected: Json) = json.spaces2 shouldEqual expected.spaces2
+  }
+
   def goCompare(actualJ: Json, expectedJ: Json): Unit = {
-    val diffs = json.deltas(actualJ, expectedJ)
+    val diffs = json.compressed.jsonDelta.apply(actualJ, expectedJ)
 
     if (diffs != Json.array()) {
       fail(diffs.spaces2)

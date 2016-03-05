@@ -4,6 +4,8 @@ import argonaut.{EncodeJson, Json, JsonObject}
 import argonaut.Json.jEmptyObject
 import sjc.delta.Delta
 
+import scala.util.Try
+
 
 object json {
   object flat {
@@ -11,10 +13,35 @@ object json {
       Delta.from[Json].curried[Json](actualJ => expectedJ => deltas(actualJ, expectedJ))
   }
 
+  object compressed {
+    private implicit class JsonOps(val json: Json) extends AnyVal {
+      def add(path: List[String], value: Json): Json = path match {
+        case Nil => json
+        case last :: Nil => json.withObject(_ + (last, value))
+        case head :: tail => json.obj.fold(json)(obj => {
+          Json.jObject(obj + (head, obj(head).getOrElse(jEmptyObject).add(tail, value)))
+        })
+      }
+    }
+
+    implicit val jsonDelta: Delta.Aux[Json, Json] = json.flat.jsonDelta.map(json => {
+      json.obj.fold(json)(obj => {
+        obj.toMap.foldLeft(jEmptyObject) {
+          case (acc, (context, delta)) => acc.add(context.split("/").toList, delta)
+        }
+      })
+    })
+  }
+
   object generic {
     object flat {
       implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] =
         json.flat.jsonDelta.contramap[A](EncodeJson.of[A].encode)
+    }
+
+    object compressed {
+      implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] =
+        json.compressed.jsonDelta.contramap[A](EncodeJson.of[A].encode)
     }
   }
 
