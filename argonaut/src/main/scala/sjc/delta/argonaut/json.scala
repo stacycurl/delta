@@ -1,15 +1,25 @@
 package sjc.delta.argonaut
 
-import argonaut.{Json, JsonObject}
+import argonaut.{EncodeJson, Json, JsonObject}
+import argonaut.Json.jEmptyObject
 import sjc.delta.Delta
 
 
 object json {
-  implicit val jsonDelta: Delta.Aux[Json, List[String]] =
-    Delta.from[Json].curried[List[String]](actualJ => expectedJ => deltas(actualJ, expectedJ))
+  object flat {
+    implicit val jsonDelta: Delta.Aux[Json, Json] =
+      Delta.from[Json].curried[Json](actualJ => expectedJ => deltas(actualJ, expectedJ))
+  }
 
-  def deltas(actualJ: Json, expectedJ: Json): List[String] = {
-    def recurse(context: Context, actual: Option[Json], expected: Option[Json]): List[String] = {
+  object generic {
+    object flat {
+      implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] =
+        json.flat.jsonDelta.contramap[A](EncodeJson.of[A].encode)
+    }
+  }
+
+  def deltas(actualJ: Json, expectedJ: Json): Json = {
+    def recurse(context: Context, actual: Option[Json], expected: Option[Json]): List[(String, Json)] = {
       if (actual == expected) Nil else (JSON.get(actual), JSON.get(expected)) match {
         case (Some(ObjectJSON(actualO)), Some(ObjectJSON(expectedO))) ⇒
           val fields = (actualO.fieldSet ++ expectedO.fieldSet).toList
@@ -27,7 +37,7 @@ object json {
       }
     }
 
-    recurse(Context(Nil), Some(actualJ), Some(expectedJ))
+    Json.jObjectFields(recurse(Context(Nil), Some(actualJ), Some(expectedJ)): _*)
   }
 
   private object JSON {
@@ -48,14 +58,10 @@ object json {
   private case class Context(elements: List[String]) {
     def +(element: String): Context = copy(element :: elements)
 
-    def error(expectedOJ: Option[Json], actualOJ: Option[Json]): List[String] = {
-      val expectedS = expectedOJ.fold("nothing")(_.spaces2)
-      val actualS   = actualOJ.fold("missing")(_.spaces2)
+    def error(expectedOJ: Option[Json], actualOJ: Option[Json]): List[(String, Json)] = List(
+      prefix -> (actualOJ.map("actual" -> _) ->?: expectedOJ.map("expected" -> _) ->?: jEmptyObject)
+    )
 
-      List(s"$prefix\n\texpected:\n${indent(expectedS)}\n\tbut was:\n${indent(actualS)}")
-    }
-
-    private def prefix: String = if (elements.isEmpty) "" else elements.reverse.mkString("/") + ":"
-    private def indent(in: String): String = in.split("\n").toList.map("\t\t" + _).mkString("\n")
+    private def prefix: String = if (elements.isEmpty) "" else elements.reverse.mkString("/")
   }
 }

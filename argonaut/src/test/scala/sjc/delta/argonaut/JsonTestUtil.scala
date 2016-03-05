@@ -4,12 +4,12 @@ import argonaut.{Json, Parse}
 import org.junit.Assert._
 
 
-object JsonTestUtil {
+class JsonTestUtil {
   def goCompare(actualJ: Json, expectedJ: Json): Unit = {
     val diffs = json.deltas(actualJ, expectedJ)
 
-    if (diffs.nonEmpty) {
-      fail(diffs.mkString("\n\n"))
+    if (diffs != Json.array()) {
+      fail(diffs.spaces2)
     }
   }
 

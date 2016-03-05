@@ -1,67 +1,56 @@
 package sjc.delta.argonaut
 
-import _root_.argonaut.Json
-import _root_.argonaut.Json.{jArray, jBool, jEmptyObject, jNull, jNumber, jString}
+import argonaut.{Parse, CodecJson, Json}
+import argonaut.Json.{jArray, jBool, jEmptyObject, jNull, jNumber, jString}
 import org.junit.Test
 import sjc.delta.TestUtil
 import sjc.delta.Delta.DeltaOps
-import sjc.delta.argonaut.json.jsonDelta
+import sjc.delta.argonaut.json.flat.jsonDelta
 
 
 class JsonTest extends TestUtil {
   @Test def shouldIgnoreIdenticalElements(): Unit = {
-    jNull          delta jNull          shouldEqual Nil
-    jBool(true)    delta jBool(true)    shouldEqual Nil
-    jNumber(123)   delta jNumber(123)   shouldEqual Nil
-    jString("abc") delta jString("abc") shouldEqual Nil
-    jEmptyObject   delta jEmptyObject   shouldEqual Nil
-    jArray(Nil)    delta jArray(Nil)    shouldEqual Nil
+    jNull          delta jNull          shouldEqual jEmptyObject
+    jBool(true)    delta jBool(true)    shouldEqual jEmptyObject
+    jNumber(123)   delta jNumber(123)   shouldEqual jEmptyObject
+    jString("abc") delta jString("abc") shouldEqual jEmptyObject
+    jEmptyObject   delta jEmptyObject   shouldEqual jEmptyObject
+    jArray(Nil)    delta jArray(Nil)    shouldEqual jEmptyObject
 
-    jArray(List(jString("abc")))              delta jArray(List(jString("abc")))              shouldEqual Nil
-    ("foo" → jString("abc")) ->: jEmptyObject delta ("foo" → jString("abc")) ->: jEmptyObject shouldEqual Nil
-
-    ("foo" → jString("abc")) ->: ("bar" → jString("abc")) ->: jEmptyObject delta
-    ("bar" → jString("abc")) ->: ("foo" → jString("abc")) ->: jEmptyObject shouldEqual Nil
+    parse("""["abc"]""")                      delta parse("""["abc"]""")                      shouldEqual jEmptyObject
+    parse("""{"foo": "abc"}""")               delta parse("""{"foo": "abc"}""")               shouldEqual jEmptyObject
+    parse("""{"foo": "abc", "bar": "abc"}""") delta parse("""{"foo": "abc", "bar": "abc"}""") shouldEqual jEmptyObject
   }
 
   @Test def shouldListDifferentElements(): Unit =  {
-    jString("abc") delta jString("def") shouldEqual List(
-      expectedMessage(context = "", expected = Some(jString("def")), actual = Some(jString("abc")))
-    )
+    jString("abc")       delta jString("def")       shouldEqual parse("""{"": {"expected": "def", "actual": "abc"}}""")
+    parse("""["abc"]""") delta parse("""["def"]""") shouldEqual parse("""{"0": {"expected": "def", "actual": "abc"}}""")
 
-    ("foo" → jString("abc")) ->: jEmptyObject delta ("foo" → jString("def")) ->: jEmptyObject shouldEqual List(
-      expectedMessage(context = "foo:", expected = Some(jString("def")), actual = Some(jString("abc")))
-    )
-
-    jArray(List(jString("abc"))) delta jArray(List(jString("def"))) shouldEqual List(
-      expectedMessage(context = "0:", expected = Some(jString("def")), actual = Some(jString("abc")))
+    parse("""{"foo": "abc"}""") delta parse("""{"foo": "def"}""") shouldEqual parse(
+      """{"foo": {"expected": "def", "actual": "abc"}}"""
     )
   }
 
   @Test def shouldListMissingElements(): Unit =  {
-    jEmptyObject delta ("parent" → jString("def")) ->: jEmptyObject shouldEqual List(
-      expectedMessage(context = "parent:", expected = Some(jString("def")), actual = None)
-    )
-
-    jArray(Nil) delta jArray(List(jString("def"))) shouldEqual List(
-      expectedMessage(context = "0:", expected = Some(jString("def")), actual = None)
-    )
+    parse("{}") delta parse("""{"parent": "def"}""") shouldEqual parse("""{"parent": {"expected": "def"}}""")
+    parse("[]") delta parse("""["def"]""")           shouldEqual parse("""{"0": {"expected": "def"}}""")
   }
 
   @Test def shouldListExtraElements(): Unit = {
-    json.deltas(("parent" → jString("def")) ->: jEmptyObject, jEmptyObject) shouldEqual List(
-      expectedMessage(context = "parent:", expected = None, actual = Some(jString("def")))
-    )
+    parse("""{"parent": "def"}""") delta parse("{}") shouldEqual parse("""{"parent": {"actual": "def"}}""")
+    parse("""["def"]""")           delta parse("[]") shouldEqual parse("""{"0": {"actual": "def"}}""")
+  }
 
-    jArray(List(jString("def"))) delta jArray(Nil) shouldEqual List(
-      expectedMessage(context = "0:", expected = None, actual = Some(jString("def")))
+  @Test def genericDelta(): Unit = {
+    import sjc.delta.argonaut.json.generic.flat.encodeJsonToDelta
+
+    case class Person(age: Int, name: String)
+    implicit val codecFoo: CodecJson[Person] = CodecJson.casecodec2(Person.apply, Person.unapply)("age", "name")
+
+    Person(1, "foo") delta Person(2, "bar") shouldEqual parse(
+      """{"age": {"expected": 2, "actual": 1}, "name": {"expected": "bar", "actual": "foo"}}"""
     )
   }
 
-  private def expectedMessage(context: String, expected: Option[Json], actual: Option[Json]): String = {
-    val expectedS = expected.fold("nothing")(_.spaces2)
-    val actualS   = actual.fold("missing")(_.spaces2)
-
-    s"$context\n\texpected:\n\t\t$expectedS\n\tbut was:\n\t\t$actualS"
-  }
+  private def parse(content: String): Json = Parse.parseOption(content).getOrElse(sys.error("not json"))
 }
