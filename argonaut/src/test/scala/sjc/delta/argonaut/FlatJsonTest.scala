@@ -1,14 +1,13 @@
 package sjc.delta.argonaut
 
-import argonaut.{Parse, CodecJson, Json}
+import argonaut.CodecJson
 import argonaut.Json.{jArray, jBool, jEmptyObject, jNull, jNumber, jString}
 import org.junit.Test
-import sjc.delta.TestUtil
 import sjc.delta.Delta.DeltaOps
 
 
 class FlatJsonTest extends JsonTestUtil {
-  import sjc.delta.argonaut.json.flat.jsonDelta
+  import sjc.delta.argonaut.json.beforeAfter.flat.jsonDelta
 
   @Test def shouldIgnoreIdenticalElements(): Unit = {
     jNull          delta jNull          jsonShouldEqual jEmptyObject
@@ -24,49 +23,56 @@ class FlatJsonTest extends JsonTestUtil {
   }
 
   @Test def shouldListDifferentElements(): Unit =  {
-    jString("abc")       delta jString("def")       jsonShouldEqual parse("""{"": {"expected": "def", "actual": "abc"}}""")
-    parse("""["abc"]""") delta parse("""["def"]""") jsonShouldEqual parse("""{"0": {"expected": "def", "actual": "abc"}}""")
+    jString("abc")       delta jString("def")       jsonShouldEqual """{"": {"before": "abc", "after": "def"}}"""
+    parse("""["abc"]""") delta parse("""["def"]""") jsonShouldEqual """{"0": {"before": "abc", "after": "def"}}"""
 
-    parse("""{"foo": "abc"}""") delta parse("""{"foo": "def"}""") jsonShouldEqual parse(
-      """{"foo": {"expected": "def", "actual": "abc"}}"""
-    )
+    parse("""{"foo": "abc"}""") delta parse("""{"foo": "def"}""") jsonShouldEqual
+      """{"foo": {"before": "abc", "after": "def"}}"""
   }
 
   @Test def shouldListMissingElements(): Unit =  {
-    parse("{}") delta parse("""{"parent": "def"}""") jsonShouldEqual parse("""{"parent": {"expected": "def"}}""")
-    parse("[]") delta parse("""["def"]""")           jsonShouldEqual parse("""{"0": {"expected": "def"}}""")
+    parse("{}") delta parse("""{"parent": "def"}""") jsonShouldEqual """{"parent": {"after": "def"}}"""
+    parse("[]") delta parse("""["def"]""")           jsonShouldEqual """{"0": {"after": "def"}}"""
   }
 
   @Test def shouldListExtraElements(): Unit = {
-    parse("""{"parent": "def"}""") delta parse("{}") jsonShouldEqual parse("""{"parent": {"actual": "def"}}""")
-    parse("""["def"]""")           delta parse("[]") jsonShouldEqual parse("""{"0": {"actual": "def"}}""")
+    parse("""{"parent": "def"}""") delta parse("{}") jsonShouldEqual """{"parent": {"before": "def"}}"""
+    parse("""["def"]""")           delta parse("[]") jsonShouldEqual """{"0": {"before": "def"}}"""
   }
 
   @Test def genericDelta(): Unit = {
-    import sjc.delta.argonaut.json.generic.flat.encodeJsonToDelta
+    import sjc.delta.argonaut.json.beforeAfter.generic.flat.encodeJsonToDelta
 
     case class Person(age: Int, name: String)
     implicit val codecPerson: CodecJson[Person] = CodecJson.casecodec2(Person.apply, Person.unapply)("age", "name")
 
-    Person(1, "foo") delta Person(2, "bar") jsonShouldEqual parse(
-      """{"age": {"expected": 2, "actual": 1}, "name": {"expected": "bar", "actual": "foo"}}"""
-    )
+    Person(1, "foo") delta Person(2, "bar") jsonShouldEqual
+      """{"age": {"before": 1, "after": 2}, "name": {"before": "foo", "after": "bar"}}"""
   }
-
-  private def parse(content: String): Json = Parse.parseOption(content).getOrElse(sys.error("not json"))
 }
 
 class CompressedJsonTest extends JsonTestUtil {
-  import sjc.delta.argonaut.json.compressed.jsonDelta
+  import sjc.delta.argonaut.json.beforeAfter.compressed.jsonDelta
 
   @Test def complexExample(): Unit = {
     (parse("""{"person": {"name": "bob", "age": 30}}""") delta
     parse("""{"person": {"name": "sue", "age": 29}}""")) jsonShouldEqual
-    parse("""{"person":{"name":{"expected":"sue","actual":"bob"},"age":{"expected":29,"actual":30}}}""")
+    """{
+      |  "person" : {
+      |    "name" : {
+      |      "before" : "bob",
+      |      "after" : "sue"
+      |    },
+      |    "age" : {
+      |      "before" : 30,
+      |      "after" : 29
+      |    }
+      |  }
+      |}""".stripMargin
   }
 
   @Test def complexExample2(): Unit = {
-    val actual = parse(
+    val before = parse(
       """
         |{
         |    "title": "Talk On Travel Pool",
@@ -92,7 +98,7 @@ class CompressedJsonTest extends JsonTestUtil {
       """.stripMargin
     )
 
-    val expected = parse(
+    val after = parse(
       """
         |{
         |    "title": "Talk On Travel Bar",
@@ -117,64 +123,48 @@ class CompressedJsonTest extends JsonTestUtil {
         |}
       """.stripMargin)
 
-    actual delta expected jsonShouldEqual parse(
+    before delta after jsonShouldEqual
       """{
         |  "items" : {
         |    "0" : {
         |      "author" : {
-        |        "expected" : "nobody@flickr.com (Talk On Travel)",
-        |        "actual" : "somebody@flickr.com (Talk On Travel)"
+        |        "before" : "somebody@flickr.com (Talk On Travel)",
+        |        "after" : "nobody@flickr.com (Talk On Travel)"
         |      },
         |      "published" : {
-        |        "expected" : "2016-12-04T12:43:03Z",
-        |        "actual" : "2008-12-04T12:43:03Z"
+        |        "before" : "2008-12-04T12:43:03Z",
+        |        "after" : "2016-12-04T12:43:03Z"
         |      }
         |    }
         |  },
         |  "link" : {
-        |    "expected" : "http://www.flickr.com/groups/talkontravel/bar/",
-        |    "actual" : "http://www.flickr.com/groups/talkontravel/pool/"
+        |    "before" : "http://www.flickr.com/groups/talkontravel/pool/",
+        |    "after" : "http://www.flickr.com/groups/talkontravel/bar/"
         |  },
         |  "title" : {
-        |    "expected" : "Talk On Travel Bar",
-        |    "actual" : "Talk On Travel Pool"
+        |    "before" : "Talk On Travel Pool",
+        |    "after" : "Talk On Travel Bar"
         |  }
         |}""".stripMargin
-    )
   }
 
   @Test def genericDelta(): Unit = {
-    import sjc.delta.argonaut.json.generic.compressed.encodeJsonToDelta
+    import sjc.delta.argonaut.json.beforeAfter.generic.compressed.encodeJsonToDelta
 
     case class Person(age: Int, name: String, pet: Dog)
     case class Dog(age: Int, name: String)
     implicit val codecDog: CodecJson[Dog] = CodecJson.casecodec2(Dog.apply, Dog.unapply)("age", "name")
     implicit val codecPerson: CodecJson[Person] = CodecJson.casecodec3(Person.apply, Person.unapply)("age", "name", "pet")
 
-    Person(11, "bob", Dog(1, "fido")) delta Person(22, "sue", Dog(2, "rover")) jsonShouldEqual parse(
+    Person(11, "bob", Dog(1, "fido")) delta Person(22, "sue", Dog(2, "rover")) jsonShouldEqual
       """{
-        |  "age" : {
-        |    "expected" : 22,
-        |    "actual" : 11
-        |  },
-        |  "name" : {
-        |    "expected" : "sue",
-        |    "actual" : "bob"
-        |  },
+        |  "age" :  { "before" : 11,    "after" : 22    },
+        |  "name" : { "before" : "bob", "after" : "sue" },
         |  "pet" : {
-        |    "age" : {
-        |      "expected" : 2,
-        |      "actual" : 1
-        |    },
-        |    "name" : {
-        |      "expected" : "rover",
-        |      "actual" : "fido"
-        |    }
+        |    "age" :  { "before" : 1,      "after" : 2      },
+        |    "name" : { "before" : "fido", "after" : "rover" }
         |  }
         |}""".stripMargin
-    )
   }
-
-  private def parse(content: String): Json = Parse.parseOption(content).getOrElse(sys.error("not json"))
 }
 

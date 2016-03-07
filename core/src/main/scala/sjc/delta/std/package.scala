@@ -5,7 +5,7 @@ package object std {
     implicit val deltaInt: Delta.Aux[Int, Int] = new Delta[Int] {
       type Out = Int
 
-      def apply(before: Int, after: Int): Int = after - before
+      def apply(left: Int, right: Int): Int = right - left
     }
   }
 }

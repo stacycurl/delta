@@ -12,14 +12,14 @@ object GenericDelta {
   ): Delta.Aux[In, genDelta.value.Out] = new Delta[In] {
     type Out = genDelta.value.Out
 
-    def apply(before: In, after: In): Out =
-      genDelta.value(gen.to(before), gen.to(after))
+    def apply(left: In, right: In): Out =
+      genDelta.value(gen.to(left), gen.to(right))
   }
 
   implicit val hnilDelta: Delta.Aux[HNil, HNil] = new Delta[HNil] {
     type Out = HNil
 
-    def apply(before: HNil, after: HNil): HNil = HNil
+    def apply(left: HNil, right: HNil): HNil = HNil
   }
 
   implicit def hconsDelta[H, T <: HList](
@@ -27,8 +27,8 @@ object GenericDelta {
   ): Delta.Aux[H :: T, deltaH.value.Out :: deltaT.value.Out] = new Delta[H :: T] {
     type Out = deltaH.value.Out :: deltaT.value.Out
 
-    def apply(before: H :: T, after: H :: T): Out = {
-      deltaH.value.apply(before.head, after.head) :: deltaT.value.apply(before.tail, after.tail)
+    def apply(left: H :: T, right: H :: T): Out = {
+      deltaH.value.apply(left.head, right.head) :: deltaT.value.apply(left.tail, right.tail)
     }
   }
   /*
@@ -51,7 +51,7 @@ object GenericDelta {
   implicit val deltaCNil: Delta.Aux[CNil, CNil] = new Delta[CNil] {
     type Out = CNil
 
-    def apply(before: CNil, after: CNil): CNil = before
+    def apply(left: CNil, right: CNil): CNil = left
   }
 
   implicit def deltaCoproduct[H, T <: Coproduct](
@@ -59,17 +59,17 @@ object GenericDelta {
   ): Delta.Aux[H :+: T, CPatch[H, hDelta.Out, T, tDelta.value.Out]] = new Delta[H :+: T] {
     type Out = CPatch[H, hDelta.Out, T, tDelta.value.Out]
 
-    def apply(before: H :+: T, after: H :+: T): CPatch[H, hDelta.Out, T, tDelta.value.Out] = (before, after) match {
-      case (Inl(lBefore), Inl(lAfter)) => Inl(Inl(hDelta(lBefore, lAfter)))
-      case (Inr(rBefore), Inr(rAfter)) => Inr(tDelta.value(rBefore, rAfter))
-      case (Inl(lBefore), Inr(rAfter)) => Inl(Inr(Inl((lBefore, rAfter))))
-      case (Inr(rBefore), Inl(lAfter)) => Inl(Inr(Inr(Inl((rBefore, lAfter)))))
+    def apply(left: H :+: T, right: H :+: T): CPatch[H, hDelta.Out, T, tDelta.value.Out] = (left, right) match {
+      case (Inl(lLeft), Inl(lRight)) => Inl(Inl(hDelta(lLeft, lRight)))
+      case (Inr(rLeft), Inr(rRight)) => Inr(tDelta.value(rLeft, rRight))
+      case (Inl(lLeft), Inr(rRight)) => Inl(Inr(Inl((lLeft, rRight))))
+      case (Inr(rLeft), Inl(lRight)) => Inl(Inr(Inr(Inl((rLeft, lRight)))))
     }
   }
 
   object deltaPoly extends Poly2 {
     implicit def delta[In](implicit delta: Delta[In]) = at[In, In] {
-      case (before, after) => delta(before, after)
+      case (left, right) => delta(left, right)
     }
   }
 
@@ -79,7 +79,7 @@ object GenericDelta {
     ): Delta.Aux[A => B, A => delta.value.Out] = new Delta[A => B] {
       type Out = A => delta.value.Out
 
-      override def apply(before: A => B, after: A => B): Out = (a: A) => delta.value(before(a), after(a))
+      override def apply(left: A => B, right: A => B): Out = (a: A) => delta.value(left(a), right(a))
     }
   }
 }

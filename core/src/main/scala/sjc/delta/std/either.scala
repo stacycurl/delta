@@ -9,13 +9,11 @@ object either {
     new Delta[Either[L, R]] {
       type Out = EitherPatch[L, R, LOut, ROut]
 
-      def apply(ebefore: Either[L, R], eafter: Either[L, R]): EitherPatch[L, R, LOut, ROut] = {
-        (ebefore, eafter) match {
-          case (Left(before),  Left(after))  => BothLeft[LOut](ldelta(before, after))
-          case (Right(before), Right(after)) => BothRight[ROut](rdelta(before, after))
-          case (Left(before),  Right(after)) => WasLeft(before, after)
-          case (Right(before), Left(after))  => WasRight(before, after)
-        }
+      def apply(eleft: Either[L, R], eright: Either[L, R]): EitherPatch[L, R, LOut, ROut] = (eleft, eright) match {
+        case (Left(left),  Left(right))  => BothLeft[LOut](ldelta(left, right))
+        case (Right(left), Right(right)) => BothRight[ROut](rdelta(left, right))
+        case (Left(left),  Right(right)) => WasLeft(left, right)
+        case (Right(left), Left(right))  => WasRight(left, right)
       }
     }
   }

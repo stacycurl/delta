@@ -8,12 +8,12 @@ object map {
   ): Delta.Aux[Map[K, V], MapPatch[K, V, VOut]] = new Delta[Map[K, V]] {
     type Out = MapPatch[K, V, VOut]
 
-    def apply(before: Map[K, V], after: Map[K, V]): MapPatch[K, V, VOut] = {
-      val changed: Map[K, VOut] = (before.keySet & after.keySet).map(k => {
-        k -> deltaV(before(k), after(k))
+    def apply(left: Map[K, V], right: Map[K, V]): MapPatch[K, V, VOut] = {
+      val changed: Map[K, VOut] = (left.keySet & right.keySet).map(k => {
+        k -> deltaV(left(k), right(k))
       })(scala.collection.breakOut)
 
-      MapPatch[K, V, VOut](after -- before.keySet, before -- after.keySet, changed)
+      MapPatch[K, V, VOut](right -- left.keySet, left -- right.keySet, changed)
     }
   }
 

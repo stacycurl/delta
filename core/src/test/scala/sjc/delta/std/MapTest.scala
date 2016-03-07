@@ -10,11 +10,11 @@ import sjc.delta.std.map.{deltaMap, MapPatch}
 
 class MapTest extends TestUtil {
   @Test def simpleMap(): Unit = {
-    beforeM.delta(afterM) shouldEqual expectedM
+    leftM delta rightM  shouldEqual expectedM
   }
 
   @Test def nestedMaps(): Unit = {
-    val nested = Map("a" -> Map(1 -> 1), "b" -> beforeM).delta(Map("b" -> afterM, "c" -> Map(3 -> 3)))
+    val nested = Map("a" -> Map(1 -> 1), "b" -> leftM).delta(Map("b" -> rightM, "c" -> Map(3 -> 3)))
 
     nested shouldEqual MapPatch(
       added   = Map("c" -> Map(3 -> 3)),
@@ -23,8 +23,8 @@ class MapTest extends TestUtil {
     )
   }
 
-  private val beforeM = Map(1 -> 1, 2 -> 2)
-  private val afterM  = Map(2 -> 22, 3 -> 3)
+  private val leftM = Map(1 -> 1, 2 -> 2)
+  private val rightM  = Map(2 -> 22, 3 -> 3)
 
   private val expectedM = MapPatch(
     added   = Map(3 -> 3),

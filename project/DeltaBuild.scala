@@ -29,7 +29,6 @@ object DeltaBuild extends Build {
     settings(libraryDependencies += "io.argonaut" %% "argonaut" % "6.1")
   )
 
-
   lazy val runAll = TaskKey[Unit]("run-all")
 
   def runAllIn(config: Configuration) = {

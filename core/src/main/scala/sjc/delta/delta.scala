@@ -6,7 +6,7 @@ import scala.language.implicitConversions
 trait Delta[In] {
   type Out
 
-  def apply(before: In, after: In): Out
+  def apply(left: In, right: In): Out
 
   def map[B](f: Out => B): Delta.Aux[In, B] = new MappedDelta[In, Out, B](f, this)
   def contramap[B](f: B => In): Delta.Aux[B, Out] = new ContramappedDelta[In, Out, B](f, this)
@@ -24,15 +24,15 @@ object Delta {
     def apply[Out](f: (In, In) => Out): Delta.Aux[In, Out] = new FunctionDelta[In, Out](f)
   }
 
-  implicit class DeltaOps[In](val before: In) extends AnyVal {
-    def delta(after: In)(implicit delta: Delta[In]): delta.Out = delta(before, after)
+  implicit class DeltaOps[In](val left: In) extends AnyVal {
+    def delta(right: In)(implicit delta: Delta[In]): delta.Out = delta(left, right)
   }
 
   object fallback {
     implicit def fallbackDelta[A]: Aux[A, (A, A)] = new Delta[A] {
       type Out = (A, A)
 
-      override def apply(before: A, after: A): (A, A) = (before, after)
+      override def apply(left: A, right: A): (A, A) = (left, right)
     }
   }
 }

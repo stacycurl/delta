@@ -48,18 +48,18 @@ class EitherTest extends TestUtil {
   ): Equal[EitherPatch[L, R, LOut, ROut]] = new Equal[EitherPatch[L, R, LOut, ROut]] {
     type EP = EitherPatch[L, R, LOut, ROut]
 
-    def equal(before: EP, after: EP): Boolean = (before, after) match {
-      case (BothLeft(blBefore), BothLeft(blAfter)) => {
-        loutEqual.equal(blBefore, blAfter)
+    def equal(left: EP, right: EP): Boolean = (left, right) match {
+      case (BothLeft(blLeft), BothLeft(blRight)) => {
+        loutEqual.equal(blLeft, blRight)
       }
-      case (BothRight(brBefore), BothRight(brAfter)) => {
-        routEqual.equal(brBefore, brAfter)
+      case (BothRight(brLeft), BothRight(brRight)) => {
+        routEqual.equal(brLeft, brRight)
       }
-      case (WasLeft(lBefore, rBefore), WasLeft(lAfter, rAfter)) => {
-        lEqual.equal(lBefore, lAfter) && rEqual.equal(rBefore, rAfter)
+      case (WasLeft(lLeft, rLeft), WasLeft(lRight, rRight)) => {
+        lEqual.equal(lLeft, lRight) && rEqual.equal(rLeft, rRight)
       }
-      case (WasRight(rBefore, lBefore), WasRight(rAfter, lAfter)) => {
-        rEqual.equal(rBefore, rAfter) && lEqual.equal(lBefore, lAfter)
+      case (WasRight(rLeft, lLeft), WasRight(rRight, lRight)) => {
+        rEqual.equal(rLeft, rRight) && lEqual.equal(lLeft, lRight)
       }
       case _ => false
     }

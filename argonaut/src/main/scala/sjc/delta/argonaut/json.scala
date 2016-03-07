@@ -4,25 +4,19 @@ import argonaut.{EncodeJson, Json, JsonObject}
 import argonaut.Json.jEmptyObject
 import sjc.delta.Delta
 
-import scala.util.Try
+object json extends json("left", "right") {
+  object beforeAfter    extends json("before", "after")
+  object actualExpected extends json("actual", "expected")
+}
 
-
-object json {
+case class json(lhsName: String, rhsName: String) { json =>
   object flat {
     implicit val jsonDelta: Delta.Aux[Json, Json] =
-      Delta.from[Json].curried[Json](actualJ => expectedJ => deltas(actualJ, expectedJ))
+      Delta.from[Json].curried[Json](left => right => deltas(left, right))
   }
 
   object compressed {
-    private implicit class JsonOps(val json: Json) extends AnyVal {
-      def add(path: List[String], value: Json): Json = path match {
-        case Nil => json
-        case last :: Nil => json.withObject(_ + (last, value))
-        case head :: tail => json.obj.fold(json)(obj => {
-          Json.jObject(obj + (head, obj(head).getOrElse(jEmptyObject).add(tail, value)))
-        })
-      }
-    }
+    import util.JsonOps
 
     implicit val jsonDelta: Delta.Aux[Json, Json] = json.flat.jsonDelta.map(json => {
       json.obj.fold(json)(obj => {
@@ -45,26 +39,26 @@ object json {
     }
   }
 
-  def deltas(actualJ: Json, expectedJ: Json): Json = {
-    def recurse(context: Context, actual: Option[Json], expected: Option[Json]): List[(String, Json)] = {
-      if (actual == expected) Nil else (JSON.get(actual), JSON.get(expected)) match {
-        case (Some(ObjectJSON(actualO)), Some(ObjectJSON(expectedO))) ⇒
-          val fields = (actualO.fieldSet ++ expectedO.fieldSet).toList
+  def deltas(leftJ: Json, rightJ: Json): Json = {
+    def recurse(context: Context, left: Option[Json], right: Option[Json]): List[(String, Json)] = {
+      if (left == right) Nil else (JSON.get(left), JSON.get(right)) match {
+        case (Some(ObjectJSON(leftO)), Some(ObjectJSON(rightO))) ⇒
+          val fields = (leftO.fieldSet ++ rightO.fieldSet).toList
 
           fields.flatMap(field ⇒ {
-            recurse(context + field, actualO.apply(field), expectedO.apply(field))
+            recurse(context + field, leftO.apply(field), rightO.apply(field))
           })
 
-        case (Some(ArrayJSON(actualA)), Some(ArrayJSON(expectedA))) ⇒
-          Range(0, actualA.length max expectedA.length).toList.flatMap(index ⇒ {
-            recurse(context + index.toString, actualA.lift(index), expectedA.lift(index))
+        case (Some(ArrayJSON(leftA)), Some(ArrayJSON(rightA))) ⇒
+          Range(0, leftA.length max rightA.length).toList.flatMap(index ⇒ {
+            recurse(context + index.toString, leftA.lift(index), rightA.lift(index))
           })
 
-        case _ ⇒ context.error(expected, actual)
+        case _ ⇒ context.error(left, right)
       }
     }
 
-    Json.jObjectFields(recurse(Context(Nil), Some(actualJ), Some(expectedJ)): _*)
+    Json.jObjectFields(recurse(Context(Nil), Some(leftJ), Some(rightJ)): _*)
   }
 
   private object JSON {
@@ -85,10 +79,22 @@ object json {
   private case class Context(elements: List[String]) {
     def +(element: String): Context = copy(element :: elements)
 
-    def error(expectedOJ: Option[Json], actualOJ: Option[Json]): List[(String, Json)] = List(
-      prefix -> (actualOJ.map("actual" -> _) ->?: expectedOJ.map("expected" -> _) ->?: jEmptyObject)
+    def error(leftOJ: Option[Json], rightOJ: Option[Json]): List[(String, Json)] = List(
+      prefix -> (leftOJ.map(lhsName -> _) ->?: rightOJ.map(rhsName -> _) ->?: jEmptyObject)
     )
 
     private def prefix: String = if (elements.isEmpty) "" else elements.reverse.mkString("/")
+  }
+}
+
+private[argonaut] object util {
+  implicit class JsonOps(val json: Json) extends AnyVal {
+    def add(path: List[String], value: Json): Json = path match {
+      case Nil => json
+      case last :: Nil => json.withObject(_ + (last, value))
+      case head :: tail => json.obj.fold(json)(obj => {
+        Json.jObject(obj + (head, obj(head).getOrElse(jEmptyObject).add(tail, value)))
+      })
+    }
   }
 }

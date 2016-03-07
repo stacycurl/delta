@@ -43,11 +43,11 @@ class DeltaTest extends TestUtil {
   }
 
   @Test def createDeltaFromFunction(): Unit = {
-    implicit val doubleDelta = Delta.from[Double] { case (before, after) => after - before }
+    implicit val doubleDelta = Delta.from[Double] { case (left, right) => right - left }
 
     1.5.delta(2.0) shouldEqual 0.5
 
-    implicit val stringDelta = Delta.from[String].curried(before => after => (before, after))
+    implicit val stringDelta = Delta.from[String].curried(left => right => (left, right))
 
     "foo".delta("bar") shouldEqual ("foo", "bar")
   }

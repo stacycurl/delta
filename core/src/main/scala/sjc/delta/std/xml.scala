@@ -5,31 +5,35 @@ import sjc.delta.Delta
 import scala.annotation.tailrec
 import scala.xml._
 
+object xml extends xml("left", "right") {
+  object beforeAfter    extends xml("before", "after")
+  object actualExpected extends xml("actual", "expected")
+}
 
-object xml {
+case class xml(lhsName: String, rhsName: String) {
   implicit val nodeDelta: Delta.Aux[Node, NodePatch] = new NodeDelta
   implicit val elemDelta: Delta.Aux[Elem, NodePatch] = nodeDelta.contramap[Elem](e ⇒ e)
 
   class NodeDelta extends Delta[Node] {
     type Out = NodePatch
 
-    def apply(beforeN: Node, afterN: Node): Out = NodePatch(recurse(Context(Nil), (beforeN, afterN)).toList).reduce
+    def apply(leftN: Node, rightN: Node): Out = NodePatch(recurse(Context(Nil), (leftN, rightN)).toList).reduce
 
-    private def recurse(context: Context, beforeAfter: (Node, Node)): Stream[SingleNodePatch] = beforeAfter match {
-      case (beforeE: Elem, afterE: Elem) if beforeE.label != afterE.label ⇒ context.diff(beforeE, afterE)
+    private def recurse(context: Context, leftRight: (Node, Node)): Stream[SingleNodePatch] = leftRight match {
+      case (leftEE: Elem, rightE: Elem) if leftEE.label != rightE.label ⇒ context.diff(leftEE, rightE)
 
-      case (beforeE: Elem, afterE: Elem) ⇒ {
-        lazy val (beforeA, afterA) = beforeE.attributeMap disjoint afterE.attributeMap
+      case (leftE: Elem, rightE: Elem) ⇒ {
+        lazy val (leftA, rightA) = leftE.attributeMap disjoint rightE.attributeMap
 
-        if (beforeA != afterA) context.diff(beforeE.withAttributes(beforeA), afterE.withAttributes(afterA)) else {
-          childElems(beforeE).zipExact(childElems(afterE)) match {
+        if (leftA != rightA) context.diff(leftE.withAttributes(leftA), rightE.withAttributes(rightA)) else {
+          childElems(leftE).zipExact(childElems(rightE)) match {
             case (zipped, unzipped) ⇒ {
-              val res = zipped.toStream.flatMap(recurse(context + beforeE, _))
+              val res = zipped.toStream.flatMap(recurse(context + leftE, _))
 
               unzipped match {
                 case None ⇒ res
-                case Some(Left(missing)) ⇒ res ++ (context + beforeE).missing(missing)
-                case Some(Right(extra)) ⇒ res ++ (context + beforeE).extra(extra)
+                case Some(Left(missing)) ⇒ res ++ (context + leftE).missing(missing)
+                case Some(Right(extra)) ⇒ res ++ (context + leftE).extra(extra)
               }
             }
           }
@@ -53,11 +57,11 @@ object xml {
     val reduce: PartialFunction[SingleNodePatch, SingleNodePatch]
   }
 
-  case class BeforeAfter(path: String, before: Node, after: Node) extends SingleNodePatch {
-    def asXml: Node = <diff context={path}><before>{before}</before><after>{after}</after></diff>
+  case class Changed(path: String, left: Node, right: Node) extends SingleNodePatch {
+    def asXml: Node = <diff context={path}>{leftElem(left)}{rightElem(right)}</diff>
 
     val reduce: PartialFunction[SingleNodePatch, SingleNodePatch] = {
-      case BeforeAfter(`path`, before2, after2) if after2.xml_sameElements(before) ⇒ copy(before = before2)
+      case Changed(`path`, left2, right2) if right2.xml_sameElements(left) ⇒ copy(left = left2)
     }
   }
 
@@ -66,10 +70,10 @@ object xml {
   }
 
   case class Extra(path: String, extra: NodeSeq) extends SingleNodePatch {
-    def asXml: Node = <diff context={path}><before></before><after>{extra}</after></diff>
+    def asXml: Node = <diff context={path}>{leftElem()}{rightElem(extra: _*)}</diff>
 
     val reduce: PartialFunction[SingleNodePatch, SingleNodePatch] = {
-      case BeforeAfter(`path`, before, after) if before.xml_sameElements(extra) ⇒ copy(extra = after)
+      case Changed(`path`, left, right) if left.xml_sameElements(extra) ⇒ copy(extra = right)
     }
   }
 
@@ -78,10 +82,10 @@ object xml {
   }
 
   case class Missing(path: String, missing: NodeSeq) extends SingleNodePatch {
-    def asXml: Node = <diff context={path}><before>{missing}</before><after></after></diff>
+    def asXml: Node = <diff context={path}>{leftElem(missing: _*)}{rightElem()}</diff>
 
     val reduce: PartialFunction[SingleNodePatch, SingleNodePatch] = {
-      case BeforeAfter(`path`, before, after) if after.xml_sameElements(missing) ⇒ copy(missing = before)
+      case Changed(`path`, left, right) if right.xml_sameElements(missing) ⇒ copy(missing = left)
     }
   }
 
@@ -89,7 +93,7 @@ object xml {
   private case class Context(elements: List[String]) {
     def +(elem: Elem): Context = copy(elem.label :: elements)
 
-    def diff(before: Node, after: Node): Stream[SingleNodePatch] = Stream(BeforeAfter(path, before, after))
+    def diff(left: Node, right: Node): Stream[SingleNodePatch] = Stream(Changed(path, left, right))
     def missing(missing: NodeSeq): Stream[SingleNodePatch] = Stream(Missing(path, missing))
     def extra(extra: NodeSeq): Stream[SingleNodePatch] = Stream(Extra(path, extra))
 
@@ -147,4 +151,10 @@ object xml {
   private def childElems(elem: Elem): List[Node] = elem.child.toList.filter {
     case e: Elem ⇒ true
   }
+
+  private def leftElem(children: Node*): Elem = elem(lhsName, children: _*)
+  private def rightElem(children: Node*): Elem = elem(rhsName, children: _*)
+
+  private def elem(label: String, children: Node*): Elem =
+    Elem(null, label, Null, TopScope, children.isEmpty, children: _*)
 }
