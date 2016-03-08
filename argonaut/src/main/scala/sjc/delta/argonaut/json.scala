@@ -4,54 +4,46 @@ import argonaut.{EncodeJson, Json, JsonObject}
 import argonaut.Json.{jEmptyObject, jString}
 import sjc.delta.Delta
 
+
 object json extends json("left", "right") {
   object beforeAfter    extends json("before", "after")
   object actualExpected extends json("actual", "expected")
 }
 
 case class json(lhsName: String, rhsName: String) { json =>
-  object flat {
-    implicit val jsonDelta: Delta.Aux[Json, Json] =
-      Delta.from[Json].curried[Json](left => right => deltas(left, right))
-
-    implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] = jsonDelta.contramap[A](EncodeJson.of[A].encode)
-
-    def deltas(leftJ: Json, rightJ: Json): Json =
-      Json.jObjectFields(changes(leftJ, rightJ).map { case (pointer, change) ⇒ pointer.asString → flatten(change) }: _*)
+  object flat extends JsonDelta {
+    def delta(left: Json, right: Json): Json = Json.jObjectFields(
+      changes(left, right).map { case (pointer, change) ⇒ pointer.asString → flatten(change) }: _*
+    )
   }
 
-  object compressed {
-    import util.JsonOps
+  object compressed extends JsonDelta {
+    def delta(left: Json, right: Json): Json = changes(left, right).foldLeft(jEmptyObject) {
+      case (acc, (Pointer(path), change)) ⇒ add(acc, path, flatten(change))
+    }
 
-    implicit val jsonDelta: Delta.Aux[Json, Json] = Delta.from[Json].curried[Json](left ⇒ right ⇒ {
-      changes(left, right).foldLeft(jEmptyObject) {
-        case (acc, (pointer, change)) ⇒ acc.add(pointer.elements, flatten(change))
-      }
-    })
-
-    implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] = jsonDelta.contramap[A](EncodeJson.of[A].encode)
+    private def add(json: Json, path: List[String], value: Json): Json = path match { // TODO: make tail recursive
+      case Nil          => json
+      case last :: Nil  => json.withObject(o => o + (last, value))
+      case head :: tail => json.withObject(o => o + (head, add(o.apply(head).getOrElse(jEmptyObject), tail, value)))
+    }
   }
 
-  object rfc6902 {
-    implicit val jsonDelta: Delta.Aux[Json, Json] = Delta.from[Json].curried[Json](left ⇒ right ⇒ {
-      def op(pointer: Pointer, op: String) = ("path" → pointer.jString) ->: ("op" → jString("add")) ->: jEmptyObject
+  object rfc6902 extends JsonDelta {
+    def delta(left: Json, right: Json): Json = Json.jArrayElements(changes(left, right) map { // TODO: Add 'move' & 'copy'
+      case (pointer, Add(rightJ))        ⇒ op(pointer, "add",     ("value" → rightJ) ->: jEmptyObject)
+      case (pointer, Remove(leftJ))      ⇒ op(pointer, "remove",                         jEmptyObject)
+      case (pointer, Replace(_, rightJ)) ⇒ op(pointer, "replace", ("value" → rightJ) ->: jEmptyObject)
+    }: _*)
 
-      // TODO: Add 'move' & 'copy'
-      Json.jArrayElements(changes(left, right) map {
-        case (pointer, Add(rightJ))        ⇒ ("value" → rightJ) ->: op(pointer, "add")
-        case (pointer, Remove(leftJ))      ⇒ op(pointer, "remove")
-        case (pointer, Replace(_, rightJ)) ⇒ ("value" → rightJ) ->: op(pointer, "replace")
-      }: _*)
-    })
+    private def op(pointer: Pointer, op: String, obj: Json) = ("op" → jString(op)) ->: ("path" → pointer.jString) ->: obj
   }
 
   private def changes(leftJ: Json, rightJ: Json): List[(Pointer, Change)] = {
     def recurse(pointer: Pointer, left: Option[Json], right: Option[Json]): List[(Pointer, Change)] = {
       if (left == right) Nil else (left, right) match {
         case (Some(JObject(leftO)), Some(JObject(rightO))) ⇒ {
-          val fields = (leftO.fieldSet ++ rightO.fieldSet).toList
-
-          fields.flatMap(field ⇒ {
+          (leftO.fieldSet ++ rightO.fieldSet).toList.flatMap(field ⇒ {
             recurse(pointer + field, leftO.apply(field), rightO.apply(field))
           })
         }
@@ -69,18 +61,17 @@ case class json(lhsName: String, rhsName: String) { json =>
   }
 
   private def flatten(change: Change): Json = change match {
-    case Add(right)           ⇒ (rhsName -> right) ->: jEmptyObject
-    case Remove(left)         ⇒ (lhsName -> left)  ->: jEmptyObject
+    case Add(right)           ⇒                        (rhsName -> right) ->: jEmptyObject
+    case Remove(left)         ⇒ (lhsName -> left)                         ->: jEmptyObject
     case Replace(left, right) ⇒ (lhsName -> left)  ->: (rhsName -> right) ->: jEmptyObject
   }
 
   private sealed trait Change
-  private case class Add(rightJ: Json) extends Change
-  private case class Remove(leftJ: Json) extends Change
+  private case class Add(rightJ: Json)                  extends Change
+  private case class Remove(leftJ: Json)                extends Change
   private case class Replace(leftJ: Json, rightJ: Json) extends Change
 
-  // This is almost a JSON Pointer (RFC 6901) the only difference (I think) is not escaping '/' or '~'
-  private case class Pointer(elements: List[String]) {
+  private case class Pointer(elements: List[String]) { // http://tools.ietf.org/html/rfc6901
     def +(element: String): Pointer = copy(element :: elements)
 
     def change(leftOJ: Option[Json], rightOJ: Option[Json]): List[(Pointer, Change)] = (leftOJ, rightOJ) match {
@@ -91,8 +82,9 @@ case class json(lhsName: String, rhsName: String) { json =>
     }
 
     def jString: Json = Json.jString(asString)
-    def asString: String = if (elements.isEmpty) "" else elements.mkString("/")
+    def asString: String = if (elements.isEmpty) "" else "/" + elements.map(escape).mkString("/")
 
+    private def escape(element: String) = element.replaceAllLiterally("~", "~0").replaceAllLiterally("/", "~1")
     private def reverse = copy(elements.reverse)
   }
 
@@ -100,14 +92,9 @@ case class json(lhsName: String, rhsName: String) { json =>
   private object JArray  { def unapply(json: Json): Option[List[Json]] = json.array }
 }
 
-private[argonaut] object util {
-  implicit class JsonOps(val json: Json) extends AnyVal {
-    def add(path: List[String], value: Json): Json = path match {
-      case Nil => json
-      case last :: Nil => json.withObject(_ + (last, value))
-      case head :: tail => json.obj.fold(json)(obj => {
-        Json.jObject(obj + (head, obj(head).getOrElse(jEmptyObject).add(tail, value)))
-      })
-    }
-  }
+trait JsonDelta {
+  implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] = jsonDelta.contramap[A](EncodeJson.of[A].encode)
+  implicit val jsonDelta: Delta.Aux[Json, Json] = Delta.from[Json](delta)
+
+  def delta(left: Json, right: Json): Json
 }
