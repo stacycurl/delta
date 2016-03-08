@@ -41,19 +41,20 @@ case class json(lhsName: String, rhsName: String) { json =>
 
   def deltas(leftJ: Json, rightJ: Json): Json = {
     def recurse(context: Context, left: Option[Json], right: Option[Json]): List[(String, Json)] = {
-      if (left == right) Nil else (JSON.get(left), JSON.get(right)) match {
-        case (Some(ObjectJSON(leftO)), Some(ObjectJSON(rightO))) ⇒
+      if (left == right) Nil else (left, right) match {
+        case (Some(JObject(leftO)), Some(JObject(rightO))) ⇒ {
           val fields = (leftO.fieldSet ++ rightO.fieldSet).toList
 
           fields.flatMap(field ⇒ {
             recurse(context + field, leftO.apply(field), rightO.apply(field))
           })
-
-        case (Some(ArrayJSON(leftA)), Some(ArrayJSON(rightA))) ⇒
+        }
+        case (Some(JArray(leftA)), Some(JArray(rightA))) ⇒ {
+          // TODO: This will become better once a Delta[List[A]] (using a 'patience diff' or otherwise) is done.
           Range(0, leftA.length max rightA.length).toList.flatMap(index ⇒ {
             recurse(context + index.toString, leftA.lift(index), rightA.lift(index))
           })
-
+        }
         case _ ⇒ context.error(left, right)
       }
     }
@@ -61,29 +62,18 @@ case class json(lhsName: String, rhsName: String) { json =>
     Json.jObjectFields(recurse(Context(Nil), Some(leftJ), Some(rightJ)): _*)
   }
 
-  private object JSON {
-    def get(oj: Option[Json]): Option[JSON] = oj.flatMap(_.fold[Option[JSON]](
-      jsonNull   = None,
-      jsonBool   = _ => None,
-      jsonNumber = _ => None,
-      jsonString = _ => None,
-      jsonArray  = arr ⇒ Some(ArrayJSON(arr)),
-      jsonObject = obj ⇒ Some(ObjectJSON(obj))
-    ))
-  }
-
-  private sealed trait JSON // types of JSON that we need to recurse into
-  private case class ObjectJSON(value: JsonObject) extends JSON
-  private case class ArrayJSON(value: List[Json]) extends JSON
+  private object JObject { def unapply(json: Json): Option[JsonObject] = json.obj   }
+  private object JArray  { def unapply(json: Json): Option[List[Json]] = json.array }
 
   private case class Context(elements: List[String]) {
     def +(element: String): Context = copy(element :: elements)
 
     def error(leftOJ: Option[Json], rightOJ: Option[Json]): List[(String, Json)] = List(
-      prefix -> (leftOJ.map(lhsName -> _) ->?: rightOJ.map(rhsName -> _) ->?: jEmptyObject)
+      pointer -> (leftOJ.map(lhsName -> _) ->?: rightOJ.map(rhsName -> _) ->?: jEmptyObject)
     )
 
-    private def prefix: String = if (elements.isEmpty) "" else elements.reverse.mkString("/")
+    // This is almost a JSON Pointer (RFC 6901) the only difference (I think) is not escaping '/' or '~'
+    private def pointer: String = if (elements.isEmpty) "" else elements.reverse.mkString("/")
   }
 }
 
