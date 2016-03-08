@@ -41,7 +41,7 @@ class FlatJsonTest extends JsonTestUtil {
   }
 
   @Test def genericDelta(): Unit = {
-    import sjc.delta.argonaut.json.beforeAfter.generic.flat.encodeJsonToDelta
+    import sjc.delta.argonaut.json.beforeAfter.flat.encodeJsonToDelta
 
     case class Person(age: Int, name: String)
     implicit val codecPerson: CodecJson[Person] = CodecJson.casecodec2(Person.apply, Person.unapply)("age", "name")
@@ -149,7 +149,7 @@ class CompressedJsonTest extends JsonTestUtil {
   }
 
   @Test def genericDelta(): Unit = {
-    import sjc.delta.argonaut.json.beforeAfter.generic.compressed.encodeJsonToDelta
+    import sjc.delta.argonaut.json.beforeAfter.compressed.encodeJsonToDelta
 
     case class Person(age: Int, name: String, pet: Dog)
     case class Dog(age: Int, name: String)
