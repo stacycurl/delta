@@ -1,13 +1,14 @@
 package sjc.delta.argonaut
 
 import argonaut.{CodecJson, Json, Parse, PrettyParams}
-import sjc.delta.TestUtil
+
+import org.scalatest.Matchers
 
 
-trait JsonTestUtil extends TestUtil {
+trait JsonTestUtil extends Matchers {
   implicit class JsonTestOps(json: Json) {
     def jsonShouldEqual(expected: String): Unit = json jsonShouldEqual parse(expected)
-    def jsonShouldEqual(expected: Json): Unit = preserveOrder.pretty(json) shouldEqual preserveOrder.pretty(expected)
+    def jsonShouldEqual(expected: Json): Unit = preserveOrder.pretty(json) shouldBe preserveOrder.pretty(expected)
   }
 
   def parse(content: String): Json = Parse.parse(content).valueOr(error => sys.error("not json: " + error))

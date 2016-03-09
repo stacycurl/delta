@@ -1,15 +1,14 @@
 package sjc.delta.std
 
-import org.junit.Test
-import sjc.delta.TestUtil
+import org.scalatest.{Matchers, FreeSpec}
 import scala.xml.{Utility, Node}
 
 import sjc.delta.Delta.DeltaOps
 import sjc.delta.std.xml.{nodeDelta, Changed, Missing, Extra, NodePatch, SingleNodePatch}
 
 
-class NodeTest extends TestUtil {
-  @Test def nodeDeltaTest(): Unit = {
+class NodeTest extends FreeSpec with Matchers {
+  "node" in {
     test(
       <abc/>,
       <abc/>,
@@ -119,18 +118,17 @@ class NodeTest extends TestUtil {
     )
   }
 
-  @Test def xmlPatchReduce(): Unit = {
-    NodePatch(List(Changed("path", <abc/>, <def/>), Changed("path", <def/>, <ghi/>))).reduce shouldEqual
+  "xmlPatchReduce" in {
+    NodePatch(List(Changed("path", <abc/>, <def/>), Changed("path", <def/>, <ghi/>))).reduce shouldBe
       NodePatch(List(Changed("path", <abc/>, <ghi/>)))
 
-    NodePatch(List(Changed("path", <def/>, <ghi/>), Missing("path", <ghi/>))).reduce shouldEqual
+    NodePatch(List(Changed("path", <def/>, <ghi/>), Missing("path", <ghi/>))).reduce shouldBe
       NodePatch(List(Missing("path", <def/>)))
 
-    NodePatch(List(Changed("path", <ghi/>, <def/>), Extra("path", <ghi/>))).reduce shouldEqual
+    NodePatch(List(Changed("path", <ghi/>, <def/>), Extra("path", <ghi/>))).reduce shouldBe
       NodePatch(List(Extra("path", <def/>)))
   }
 
-
   private def test(left: Node, right: Node, expected: SingleNodePatch*): Unit =
-    (left delta right).asXml.shouldEqualBy(Utility.trim, NodePatch(expected.toList).asXml)
+    Utility.trim((left delta right).asXml) shouldBe Utility.trim(NodePatch(expected.toList).asXml)
 }

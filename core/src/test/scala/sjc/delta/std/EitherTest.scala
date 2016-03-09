@@ -1,27 +1,27 @@
 package sjc.delta.std
 
-import org.junit.Test
+import org.scalatest.{Matchers, FreeSpec}
 import scalaz.{Show, Equal, \/}
 
-import sjc.delta.{TestUtil, Delta}
+import sjc.delta.Delta
 import sjc.delta.Delta.DeltaOps
 import sjc.delta.std.either.{deltaEither, EitherPatch, BothLeft, BothRight, WasLeft, WasRight}
 import sjc.delta.std.int.deltaInt
 
 
-class EitherTest extends TestUtil {
-  @Test def eitherDeltaTest(): Unit = {
+class EitherTest extends FreeSpec with Matchers {
+  "either" in {
     type E = Either[Int, Int]
     def left(l: Int): E = Left(l)
     def right(r: Int): E = Right(r)
 
-    left(2).delta(left(10))   shouldEqual bothLeft(8)
-    right(2).delta(right(10)) shouldEqual bothRight(8)
-    left(2).delta(right(10))  shouldEqual wasLeft(2, 10)
-    right(2).delta(left(10))  shouldEqual wasRight(2, 10)
+    left(2).delta(left(10))   shouldBe bothLeft(8)
+    right(2).delta(right(10)) shouldBe bothRight(8)
+    left(2).delta(right(10))  shouldBe wasLeft(2, 10)
+    right(2).delta(left(10))  shouldBe wasRight(2, 10)
   }
 
-  @Test def \\/(): Unit = {
+  "\\/" in {
     // TODO: Create a 'scalaz' module and move this definition there
     implicit def deltaV[L, R](implicit deltaEither: Delta[Either[L, R]]): Delta[L \/ R] =
       deltaEither.contramap[L \/ R](_.toEither)
@@ -30,10 +30,10 @@ class EitherTest extends TestUtil {
     def left(l: Int): E = \/.left[Int, Int](l)
     def right(r: Int): E = \/.right[Int, Int](r)
 
-    left(2).delta(left(10))   shouldEqual bothLeft(8)
-    right(2).delta(right(10)) shouldEqual bothRight(8)
-    left(2).delta(right(10))  shouldEqual wasLeft(2, 10)
-    right(2).delta(left(10))  shouldEqual wasRight(2, 10)
+    left(2).delta(left(10))   shouldBe bothLeft(8)
+    right(2).delta(right(10)) shouldBe bothRight(8)
+    left(2).delta(right(10))  shouldBe wasLeft(2, 10)
+    right(2).delta(left(10))  shouldBe wasRight(2, 10)
   }
 
   private type EP = EitherPatch[Int, Int, Int, Int]

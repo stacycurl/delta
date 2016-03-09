@@ -1,22 +1,21 @@
 package sjc.delta.std
 
-import org.junit.Test
+import org.scalatest.{Matchers, FreeSpec}
 import sjc.delta.Delta.DeltaOps
-import sjc.delta.TestUtil
 
 import sjc.delta.std.int.deltaInt
 import sjc.delta.std.map.{deltaMap, MapPatch}
 
 
-class MapTest extends TestUtil {
-  @Test def simpleMap(): Unit = {
-    leftM delta rightM  shouldEqual expectedM
+class MapTest extends FreeSpec with Matchers {
+  "simple" in {
+    leftM delta rightM  shouldBe expectedM
   }
 
-  @Test def nestedMaps(): Unit = {
+  "nested" in {
     val nested = Map("a" -> Map(1 -> 1), "b" -> leftM).delta(Map("b" -> rightM, "c" -> Map(3 -> 3)))
 
-    nested shouldEqual MapPatch(
+    nested shouldBe MapPatch(
       added   = Map("c" -> Map(3 -> 3)),
       removed = Map("a" -> Map(1 -> 1)),
       changed = Map("b" -> expectedM)

@@ -5,7 +5,7 @@ import sbt.Keys._
 
 object DeltaBuild extends Build {
   lazy val delta = (project in file(".")
-    aggregate(core, generic, argonaut)
+    aggregate(core, generic, argonaut, matchers)
     settings(commonSettings: _*)
     settings(publish := (), publishLocal := ())
   )
@@ -13,20 +13,23 @@ object DeltaBuild extends Build {
   lazy val core = (project in file("core")
     settings(commonSettings: _*)
     settings(Publishing.settings: _*)
+    settings(libraryDependencies ++= Seq(
+      "org.scala-lang.modules" %% "scala-xml"   % "1.0.3",
+      "org.scalaz"             %% "scalaz-core" % "7.1.0" % "test"
+    ))
   )
 
-  lazy val generic = (project in file("generic")
-    dependsOn core % "compile -> compile; test -> test"
-    settings(commonSettings: _*)
-    settings(Publishing.settings: _*)
+  lazy val generic = (project configure dependantProject("generic")
     settings(libraryDependencies += "com.chuusai" %% "shapeless" % "2.1.0")
   )
 
-  lazy val argonaut = (project in file("argonaut")
-    dependsOn core % "compile -> compile; test -> test"
-    settings(commonSettings: _*)
-    settings(Publishing.settings: _*)
+  lazy val argonaut = (project configure dependantProject("argonaut")
     settings(libraryDependencies += "io.argonaut" %% "argonaut" % "6.1")
+  )
+
+  lazy val matchers = (project configure dependantProject("matchers")
+    dependsOn argonaut % "compile -> compile; test -> test"
+    settings(libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4")
   )
 
   lazy val runAll = TaskKey[Unit]("run-all")
@@ -37,16 +40,18 @@ object DeltaBuild extends Build {
     }
   }
 
-  def commonSettings = Seq(
+  private def dependantProject(name: String)(project: Project) = (project in file(name)
+    dependsOn core % "compile -> compile; test -> test"
+    settings(commonSettings: _*)
+    settings(Publishing.settings: _*)
+  )
+
+  private def commonSettings = Seq(
     organization := "com.github.stacycurl",
     scalaVersion := "2.11.7",
     maxErrors := 1,
     parallelExecution in Test := true,
     scalacOptions := Seq("-feature", "-Xfatal-warnings", "-deprecation", "-unchecked"),
-    libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-xml"       % "1.0.3",
-      "com.novocode"           %  "junit-interface" % "0.11"  % "test",
-      "org.scalaz"             %% "scalaz-core"     % "7.1.0" % "test"
-    )
+    libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
   )
 }

@@ -2,54 +2,49 @@ package sjc.delta
 
 import scala.language.existentials
 
-import org.junit.Test
-
-import scalaz.{Equal, Show}
+import org.scalatest.{Matchers, FreeSpec}
 
 
-class DeltaTest extends TestUtil {
+class DeltaTest extends FreeSpec with Matchers {
   import sjc.delta.Delta._
 
-  @Test def intDeltaTest(): Unit = {
+  "int" in {
     import sjc.delta.std.int._
 
-    10.delta(2) shouldEqual -8
+    10.delta(2) shouldBe -8
   }
 
-  @Test def createDeltaFromFunction(): Unit = {
+  "create delta from function" in {
     implicit val doubleDelta = Delta.from[Double] { case (left, right) => right - left }
 
-    1.5.delta(2.0) shouldEqual 0.5
+    1.5.delta(2.0) shouldBe 0.5
 
     implicit val stringDelta = Delta.from[String].curried(left => right => (left, right))
 
-    "foo".delta("bar") shouldEqual ("foo", "bar")
+    "foo".delta("bar") shouldBe ("foo", "bar")
   }
 
-  @Test def canMapOverDelta(): Unit = {
+  "can map over delta" in {
     implicit val intDeltaAsString: Delta.Aux[Int, String] = sjc.delta.std.int.deltaInt.map(_.toString)
 
-    1.delta(3) shouldEqual "2"
+    1.delta(3) shouldBe "2"
   }
 
-  @Test def canContramapOverDelta(): Unit = {
+  "can contramap over delta" in {
     import sjc.delta.std.int._
 
     implicit val hasIntDelta = Delta[Int].contramap[HasInt](_.i)
 
-    HasInt(1).delta(HasInt(2)) shouldEqual 1.delta(2)
+    HasInt(1).delta(HasInt(2)) shouldBe 1.delta(2)
   }
 
-  @Test def fallbackDeltaTest(): Unit = {
+  "fallback delta test" in {
     import Delta.fallback._
 
-    HasInt(1).delta(HasInt(2)) shouldEqual (HasInt(1), HasInt(2))
+    HasInt(1).delta(HasInt(2)) shouldBe (HasInt(1), HasInt(2))
   }
 
   case class HasInt(i: Int)
   case class MapAndInt(i: Int, m: Map[Int, Int])
   case class RecursiveProduct(i: Int, o: Option[RecursiveProduct])
-
-  implicit def fallbackEqual[A]: Equal[A] = Equal.equalA[A]
-  implicit def fallbackShow[A]: Show[A] = Show.showA[A]
 }

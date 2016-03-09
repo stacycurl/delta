@@ -1,9 +1,9 @@
 package sjc.delta.generic
 
+import scala.language.implicitConversions
+
 import shapeless._
 import sjc.delta.Delta
-
-import scala.language.implicitConversions
 
 
 object GenericDelta {

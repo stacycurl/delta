@@ -1,72 +1,71 @@
 package sjc.delta
 
-import org.junit.Test
-
 import Reify.ReifyOps
+import org.scalatest.{Matchers, FreeSpec}
 
 
-class ReifyTest extends TestUtil {
-  @Test def `boolean reify`(): Unit = {
-    false.reify.asString shouldEqual "false"
-    true.reify.asString shouldEqual "true"
+class ReifyTest extends FreeSpec with Matchers {
+  "boolean reify" in {
+    false.reify.asString shouldBe "false"
+    true.reify.asString shouldBe "true"
   }
 
-  @Test def `char reify`(): Unit = {
-    'a'.reify.asString shouldEqual "'a'"
+  "char reify" in {
+    'a'.reify.asString shouldBe "'a'"
   }
 
-  @Test def `double reify`(): Unit = {
-    123.456.reify.asString shouldEqual "123.456"
+  "double reify" in {
+    123.456.reify.asString shouldBe "123.456"
   }
 
-  @Test def `float reify`(): Unit = {
-    123.456F.reify.asString shouldEqual "123.456F"
+  "float reify" in {
+    123.456F.reify.asString shouldBe "123.456F"
   }
 
-  @Test def `int reify`(): Unit = {
-    123.reify.asString shouldEqual "123"
+  "int reify" in {
+    123.reify.asString shouldBe "123"
   }
 
-  @Test def `long reify`(): Unit = {
-    123L.reify.asString shouldEqual "123L"
+  "long reify" in {
+    123L.reify.asString shouldBe "123L"
   }
 
-  @Test def `string reify`(): Unit = {
-    "123".reify.asString shouldEqual "\"123\""
+  "string reify" in {
+    "123".reify.asString shouldBe "\"123\""
   }
 
-  @Test def `list reify`(): Unit = {
-    List(123).reify.asString shouldEqual """List(123)"""
-    List("123").reify.asString shouldEqual """List("123")"""
+  "list reify" in {
+    List(123).reify.asString shouldBe """List(123)"""
+    List("123").reify.asString shouldBe """List("123")"""
   }
 
-  @Test def `set reify`(): Unit = {
-    Set(123).reify.asString shouldEqual """Set(123)"""
-    Set("123").reify.asString shouldEqual """Set("123")"""
+  "set reify" in {
+    Set(123).reify.asString shouldBe """Set(123)"""
+    Set("123").reify.asString shouldBe """Set("123")"""
   }
 
-  @Test def `map reify`(): Unit = {
-    Map(123 -> List(456)).reify.asString shouldEqual """Map(123 -> List(456))"""
-    Map("123" -> List("456")).reify.asString shouldEqual """Map("123" -> List("456"))"""
+  "map reify" in {
+    Map(123 -> List(456)).reify.asString shouldBe """Map(123 -> List(456))"""
+    Map("123" -> List("456")).reify.asString shouldBe """Map("123" -> List("456"))"""
   }
 
-  @Test def `option reify`(): Unit = {
-    (None: Option[Int]).reify.asString shouldEqual "None"
-    (Some(123): Option[Int]).reify.asString shouldEqual """Some(123)"""
-    (Some("123"): Option[String]).reify.asString shouldEqual """Some("123")"""
+  "option reify" in {
+    (None: Option[Int]).reify.asString shouldBe "None"
+    (Some(123): Option[Int]).reify.asString shouldBe """Some(123)"""
+    (Some("123"): Option[String]).reify.asString shouldBe """Some("123")"""
   }
 
-  @Test def `either reify`(): Unit = {
-    (Left(123): Either[Int, Int]).reify.asString shouldEqual """Left(123)"""
-    (Left("123"): Either[String, Int]).reify.asString shouldEqual """Left("123")"""
-    (Right(123): Either[Int, Int]).reify.asString shouldEqual """Right(123)"""
-    (Right("123"): Either[Int, String]).reify.asString shouldEqual """Right("123")"""
+  "either reify" in {
+    (Left(123): Either[Int, Int]).reify.asString shouldBe """Left(123)"""
+    (Left("123"): Either[String, Int]).reify.asString shouldBe """Left("123")"""
+    (Right(123): Either[Int, Int]).reify.asString shouldBe """Right(123)"""
+    (Right("123"): Either[Int, String]).reify.asString shouldBe """Right("123")"""
   }
 
-  @Test def contramap(): Unit = {
+  "contramap" in {
     val hasInt: Reify[HasInt] = Reify[Int].contramap[HasInt](_.i)
 
-    hasInt(HasInt(123)).asString shouldEqual "HasInt(123)"
+    hasInt(HasInt(123)).asString shouldBe "HasInt(123)"
   }
 
   case class HasInt(i: Int)

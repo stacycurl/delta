@@ -1,12 +1,12 @@
 package sjc.delta.argonaut
 
-import org.junit.Test
+import org.scalatest.FreeSpec
 import sjc.delta.Delta.DeltaOps
 import sjc.delta.argonaut.json.beforeAfter.compressed.{encodeJsonToDelta, jsonDelta}
 
 
-class CompressedJsonTest extends JsonTestUtil {
-  @Test def complexExample(): Unit = {
+class CompressedJsonTest extends FreeSpec with JsonTestUtil {
+  "complex example" in {
     complexBefore delta complexAfter jsonShouldEqual """{
     |  "items" : {
     |    "0" : {
@@ -31,7 +31,7 @@ class CompressedJsonTest extends JsonTestUtil {
     |}""".stripMargin
   }
 
-  @Test def genericDelta(): Unit = {
+  "generic delta" in {
     Person(11, "bob", Dog(1, "fido")) delta Person(22, "sue", Dog(2, "rover")) jsonShouldEqual """{
     |  "age" :  { "before" : 11,    "after" : 22    },
     |  "name" : { "before" : "bob", "after" : "sue" },
