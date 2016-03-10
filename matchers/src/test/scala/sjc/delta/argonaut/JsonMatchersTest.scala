@@ -13,7 +13,43 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
 
       intercept[TestFailedException] {
         jString("def") should beDifferentTo(jString("def"))
-      }.message shouldBe Some(""""def" was no different to "def"""")
+      }.message shouldBe Some("No differences detected")
+    }
+
+    "beDifferentTo.withDelta" in {
+      jString("def") should beDifferentTo(jString("abc")).withDelta(parse("""
+        |{
+        |  "" : {
+        |    "actual" : "def",
+        |    "expected" : "abc"
+        |  }
+        |}""".stripMargin)
+      )
+
+      intercept[TestFailedException] {
+        jString("def") should beDifferentTo(jString("abc")).withDelta(parse("""
+          |{
+          |  "" : {
+          |    "actual" : "def",
+          |    "expected" : "foo"
+          |  }
+          |}""".stripMargin)
+        )
+      }.message shouldBe Some(
+        """Difference was not as expected
+          |  actual: {
+          |    "" : {
+          |      "actual" : "def",
+          |      "expected" : "abc"
+          |    }
+          |  }
+          |  expected: {
+          |    "" : {
+          |      "actual" : "def",
+          |      "expected" : "foo"
+          |    }
+          |  }""".stripMargin
+      )
     }
 
     "not beDifferentTo" in {
@@ -22,13 +58,14 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
       intercept[TestFailedException] {
         jString("def") should not(beDifferentTo(jString("abc")))
       }.message shouldBe Some(
-        """"def" had the following differences with "abc":
+        """Detected the following differences:
           |  {
           |    "" : {
           |      "actual" : "def",
           |      "expected" : "abc"
           |    }
-          |  }""".stripMargin)
+          |  }""".stripMargin
+      )
     }
 
     "beIdenticalTo" in {
@@ -37,7 +74,7 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
       intercept[TestFailedException] {
         jString("def") should beIdenticalTo(jString("abc"))
       }.message shouldBe Some(
-        """"def" had the following differences with "abc":
+        """Detected the following differences:
           |  {
           |    "" : {
           |      "actual" : "def",
@@ -51,7 +88,7 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
 
       intercept[TestFailedException] {
         jString("def") should not(beIdenticalTo(jString("def")))
-      }.message shouldBe Some(""""def" was no different to "def"""")
+      }.message shouldBe Some("No differences detected")
     }
   }
 
@@ -61,7 +98,7 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
 
       intercept[TestFailedException] {
         bob should beDifferentTo(bob)
-      }.message shouldBe Some(s"""$bob was no different to $bob""")
+      }.message shouldBe Some("No differences detected")
     }
 
     "not beDifferentTo" in {
@@ -70,7 +107,7 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
       intercept[TestFailedException] {
         bob should not(beDifferentTo(sue))
       }.message shouldBe Some(
-        s"""$bob had the following differences with $sue:
+        s"""Detected the following differences:
           |  {
           |    "/age" : {
           |      "actual" : 11,
@@ -97,7 +134,7 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
       intercept[TestFailedException] {
         bob should beIdenticalTo(sue)
       }.message shouldBe Some(
-        s"""$bob had the following differences with $sue:
+        s"""Detected the following differences:
            |  {
            |    "/age" : {
            |      "actual" : 11,
@@ -123,7 +160,7 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
 
       intercept[TestFailedException] {
         bob should not(beIdenticalTo(bob))
-      }.message shouldBe Some(s"""$bob was no different to $bob""")
+      }.message shouldBe Some("No differences detected")
     }
   }
 
