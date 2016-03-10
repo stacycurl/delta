@@ -4,6 +4,7 @@ import argonaut.Json.jString
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{FreeSpec, Matchers}
 import sjc.delta.argonaut.matchers.{beDifferentTo, beIdenticalTo}
+import sjc.delta.argonaut.json.actualExpected.flat.{jsonDelta, encodeJsonToDelta}
 
 
 class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
