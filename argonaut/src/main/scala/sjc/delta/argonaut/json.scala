@@ -2,7 +2,7 @@ package sjc.delta.argonaut
 
 import argonaut.{EncodeJson, Json, JsonObject}
 import argonaut.Json.{jEmptyObject, jString}
-import sjc.delta.Delta
+import sjc.delta.{DeltaWithZero, Delta}
 
 
 object json extends json("left", "right") {
@@ -93,8 +93,11 @@ case class json(lhsName: String, rhsName: String) { json =>
 }
 
 trait JsonDelta {
-  implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] = jsonDelta.contramap[A](EncodeJson.of[A].encode)
-  implicit val jsonDelta: Delta.Aux[Json, Json] = Delta.from[Json](delta)
+  implicit def encodeJsonToDelta[A: EncodeJson]: DeltaWithZero.Aux[A, Json] =
+    jsonDelta.contramap[A](EncodeJson.of[A].encode)
+
+  implicit val jsonDelta: DeltaWithZero.Aux[Json, Json] =
+    DeltaWithZero.from[Json](jEmptyObject, delta)
 
   def delta(left: Json, right: Json): Json
 }

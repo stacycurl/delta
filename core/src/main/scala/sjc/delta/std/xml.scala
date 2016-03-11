@@ -1,9 +1,10 @@
 package sjc.delta.std
 
-import sjc.delta.Delta
+import sjc.delta.DeltaWithZero
 
 import scala.annotation.tailrec
 import scala.xml._
+
 
 object xml extends xml("left", "right") {
   object beforeAfter    extends xml("before", "after")
@@ -11,11 +12,13 @@ object xml extends xml("left", "right") {
 }
 
 case class xml(lhsName: String, rhsName: String) {
-  implicit val nodeDelta: Delta.Aux[Node, NodePatch] = new NodeDelta
-  implicit val elemDelta: Delta.Aux[Elem, NodePatch] = nodeDelta.contramap[Elem](e ⇒ e)
+  implicit val nodeDelta: DeltaWithZero.Aux[Node, NodePatch] = new NodeDelta
+  implicit val elemDelta: DeltaWithZero.Aux[Elem, NodePatch] = nodeDelta.contramap[Elem](e ⇒ e)
 
-  class NodeDelta extends Delta[Node] {
+  class NodeDelta extends DeltaWithZero[Node] {
     type Out = NodePatch
+
+    val zero: NodePatch = NodePatch(Nil)
 
     def apply(leftN: Node, rightN: Node): Out = NodePatch(recurse(Context(Nil), (leftN, rightN)).toList).reduce
 

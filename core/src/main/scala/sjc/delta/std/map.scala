@@ -1,12 +1,14 @@
 package sjc.delta.std
 
-import sjc.delta.Delta
+import sjc.delta.{DeltaWithZero, Delta}
 
 object map {
   implicit def deltaMap[K, V, VOut](
     implicit deltaV: Delta.Aux[V, VOut]
-  ): Delta.Aux[Map[K, V], MapPatch[K, V, VOut]] = new Delta[Map[K, V]] {
+  ): DeltaWithZero.Aux[Map[K, V], MapPatch[K, V, VOut]] = new DeltaWithZero[Map[K, V]] {
     type Out = MapPatch[K, V, VOut]
+
+    val zero: MapPatch[K, V, VOut] = MapPatch(Map(), Map(), Map())
 
     def apply(left: Map[K, V], right: Map[K, V]): MapPatch[K, V, VOut] = {
       val changed: Map[K, VOut] = (left.keySet & right.keySet).map(k => {
