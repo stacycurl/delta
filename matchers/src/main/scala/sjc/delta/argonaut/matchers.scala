@@ -8,10 +8,10 @@ import sjc.delta.matchers.{DeltaMatcher, Pretty}
 
 object matchers {
   def beDifferentTo[A: EncodeJson](expected: A)(implicit deltaA: DeltaWithZero.Aux[A, Json]): DeltaMatcher[A, Json] =
-    new DeltaMatcher(expected, None, false)
+    new DeltaMatcher(expected, false)
 
   def beIdenticalTo[A: EncodeJson](expected: A)(implicit deltaA: DeltaWithZero.Aux[A, Json]): Matcher[A] =
-    new DeltaMatcher(expected, None, true)
+    new DeltaMatcher(expected, true)
 
   implicit val prettyJson: Pretty[Json] =
     Pretty.create[Json](json ⇒ PrettyParams.spaces2.copy(preserveOrder = true).pretty(json))

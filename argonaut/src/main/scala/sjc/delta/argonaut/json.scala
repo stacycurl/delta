@@ -5,12 +5,12 @@ import argonaut.Json.{jEmptyObject, jString}
 import sjc.delta.{DeltaWithZero, Delta}
 
 
-object json extends json("left", "right") {
-  object beforeAfter    extends json("before", "after")
-  object actualExpected extends json("actual", "expected")
+object json extends json("left", "right", false) {
+  object beforeAfter    extends json("before", "after", false)
+  object actualExpected extends json("actual", "expected", false)
 }
 
-case class json(lhsName: String, rhsName: String) { json =>
+case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { json =>
   object flat extends JsonDelta {
     def delta(left: Json, right: Json): Json = Json.jObjectFields(
       changes(left, right).map { case (pointer, change) ⇒ pointer.asString → flatten(change) }: _*
@@ -84,7 +84,10 @@ case class json(lhsName: String, rhsName: String) { json =>
     def jString: Json = Json.jString(asString)
     def asString: String = if (elements.isEmpty) "" else "/" + elements.map(escape).mkString("/")
 
-    private def escape(element: String) = element.replaceAllLiterally("~", "~0").replaceAllLiterally("/", "~1")
+    private def escape(element: String) = if (!rfc6901Escaping && element.startsWith("/")) s"[$element]" else {
+      element.replaceAllLiterally("~", "~0").replaceAllLiterally("/", "~1")
+    }
+
     private def reverse = copy(elements.reverse)
   }
 

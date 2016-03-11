@@ -59,6 +59,9 @@ object Delta {
 trait DeltaWithZero[In] extends Delta[In] {
   def zero: Out
 
+  def andThen[Out2](out: Out)(implicit deltaOut2: DeltaWithZero.Aux[Out, Out2]): DeltaWithZero.Aux[In, Out2] =
+    new DeltaWithZero.AndThen[In, Out, Out2](out, this, deltaOut2)
+
   override def map[Out2](f: Out ⇒ Out2): DeltaWithZero.Aux[In, Out2] =
     new DeltaWithZero.Mapped[In, Out, Out2](f, this)
 
@@ -95,5 +98,21 @@ object DeltaWithZero {
 
     def zero: Out0 = deltaWithZero.zero
     def apply(left: In2, right: In2): Out0 = deltaWithZero(f(left), f(right))
+  }
+
+  private class AndThen[In, Out1, Out2](
+    out1: Out1, first: DeltaWithZero.Aux[In, Out1], second: DeltaWithZero.Aux[Out1, Out2]
+  ) extends DeltaWithZero[In] {
+
+    type Out = Out2
+
+    def zero: Out2 = second.zero
+
+    def apply(left: In, right: In): Out2 = {
+      val firstOrder: Out1 = first.apply(left, right)
+      val secondOrder = second.apply(firstOrder, out1)
+
+      secondOrder
+    }
   }
 }

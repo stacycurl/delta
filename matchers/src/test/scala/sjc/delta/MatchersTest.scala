@@ -20,7 +20,7 @@ class MatchersTest extends FreeSpec with Matchers {
 
     intercept[TestFailedException] {
       1 should beDifferentTo(20).withDelta(5)
-    }.message shouldBe Some("Difference was not as expected\n  actual: 19\n  expected: 5")
+    }.message shouldBe Some("Detected the following differences:\n  -14")
   }
 
   "beIdenticalTo" in {
