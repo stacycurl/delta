@@ -14,8 +14,7 @@ jdk:
 
 before_script: ./project/bintray.sh
 
-script:
-- sbt clean compile test $(if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$JAVA_HOME" == "$(jdk_switcher home openjdk6)" ]]; then echo "publish"; fi)
+script: ./project/build.sh
 
 env:
   global:
