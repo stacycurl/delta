@@ -4,36 +4,43 @@ import org.scalatest.matchers.{MatchResult, Matcher}
 
 
 object matchers {
-  def beDifferentTo[A, B](expected: A)(implicit deltaA: Delta.Aux[A, B]): DeltaMatcher[A, B] =
-    new DeltaMatcher(expected, deltaA(expected, expected), None, (b: B) ⇒ b.toString, false)
+  def beDifferentTo[A, B: Patch: Pretty](expected: A)(implicit deltaA: Delta.Aux[A, B]): DeltaMatcher[A, B] =
+    new DeltaMatcher(expected, false)
 
-  def beIdenticalTo[A, B](expected: A)(implicit deltaA: Delta.Aux[A, B]): Matcher[A] =
-    new DeltaMatcher(expected, deltaA(expected, expected), None, (b: B) ⇒ b.toString, true)
+  def beIdenticalTo[A, B: Patch: Pretty](expected: A)(implicit deltaA: Delta.Aux[A, B]): Matcher[A] =
+    new DeltaMatcher(expected, true)
 
 
-  class DeltaMatcher[A, B](
-    expected: A, empty: B, optExpectedDelta: Option[B], pretty: B ⇒ String, positive: Boolean
-  )(implicit deltaA: Delta.Aux[A, B]) extends Matcher[A] {
+  class DeltaMatcher[A, B: Patch: Pretty](expected: A, positive: Boolean)(implicit deltaA: Delta.Aux[A, B])
+    extends Matcher[A] {
 
-    def withDelta(expectedDelta: B): DeltaMatcher[A, B] =
-      new DeltaMatcher[A, B](expected, empty, Some(expectedDelta), pretty, true)
+    def withDelta[C: Patch: Pretty](expectedDelta: B)(implicit deltaC: Delta.Aux[B, C]): DeltaMatcher[A, C] =
+      new DeltaMatcher[A, C](expected, true)(Patch[C], Pretty[C], deltaA.andThen(expectedDelta))
 
     def apply(actual: A): MatchResult = {
       val delta = deltaA(actual, expected)
 
-      optExpectedDelta.fold(matchResult(delta, empty, s"Detected the following differences:\n  ${indent(delta)}"))(
-        expectedDelta ⇒ matchResult(delta, expectedDelta,
-          s"Difference was not as expected\n  actual: ${indent(delta)}\n  expected: ${indent(expectedDelta)}"
-        )
-      )
+      matchResult(delta, s"Detected the following differences:\n  ${Pretty[B].indent(delta)}")
     }
 
-    private def matchResult(delta: B, expectedDelta: B, positiveMsg: String) = MatchResult(
-      if (positive) delta == expectedDelta    else delta != expectedDelta,
-      if (positive) positiveMsg               else "No differences detected",
-      if (positive) "No differences detected" else positiveMsg
-    )
+    private def matchResult(delta: B, positiveMsg: String) = {
+      if (positive) MatchResult(Patch[B].isEmpty(delta),  positiveMsg, "No differences detected")
+      else          MatchResult(Patch[B].nonEmpty(delta), "No differences detected", positiveMsg)
+    }
+  }
 
-    private def indent(delta: B): String = pretty(delta).replaceAllLiterally("\n", "\n  ")
+  trait Pretty[A] {
+    def indent(a: A) = apply(a).replaceAllLiterally("\n", "\n  ")
+    def apply(a: A): String
+  }
+
+  object Pretty {
+    def apply[A](implicit pretty: Pretty[A]): Pretty[A] = pretty
+
+    def create[A](pretty: A ⇒ String): Pretty[A] = new Pretty[A] {
+      def apply(a: A): String = pretty(a)
+    }
+
+    implicit def toStringPretty[A]: Pretty[A] = create[A](_.toString)
   }
 }

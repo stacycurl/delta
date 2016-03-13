@@ -1,6 +1,7 @@
 package sjc.delta.std
 
-import sjc.delta.Delta
+import sjc.delta.{Patch, Delta}
+
 
 object map {
   implicit def deltaMap[K, V, VOut](
@@ -17,5 +18,12 @@ object map {
     }
   }
 
-  case class MapPatch[K, V, VOut](added: Map[K, V], removed: Map[K, V], changed: Map[K, VOut])
+  case class MapPatch[K, V, VOut](added: Map[K, V], removed: Map[K, V], changed: Map[K, VOut]) {
+    def isEmpty = added.isEmpty && removed.isEmpty && changed.isEmpty
+  }
+
+  object MapPatch {
+    implicit def emptyMapPatch[K, V, VOut] = EmptyMapPatch.asInstanceOf[Patch[MapPatch[K, V, VOut]]]
+    private val EmptyMapPatch = Patch.create[MapPatch[Nothing, Nothing, Nothing]](_.isEmpty)
+  }
 }

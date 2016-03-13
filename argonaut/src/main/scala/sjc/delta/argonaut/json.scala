@@ -2,15 +2,15 @@ package sjc.delta.argonaut
 
 import argonaut.{EncodeJson, Json, JsonObject}
 import argonaut.Json.{jEmptyObject, jString}
-import sjc.delta.Delta
+import sjc.delta.{Patch, Delta}
 
 
-object json extends json("left", "right") {
-  object beforeAfter    extends json("before", "after")
-  object actualExpected extends json("actual", "expected")
+object json extends json("left", "right", false) {
+  object beforeAfter    extends json("before", "after", false)
+  object actualExpected extends json("actual", "expected", false)
 }
 
-case class json(lhsName: String, rhsName: String) { json =>
+case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { json =>
   object flat extends JsonDelta {
     def delta(left: Json, right: Json): Json = Json.jObjectFields(
       changes(left, right).map { case (pointer, change) ⇒ pointer.asString → flatten(change) }: _*
@@ -84,7 +84,10 @@ case class json(lhsName: String, rhsName: String) { json =>
     def jString: Json = Json.jString(asString)
     def asString: String = if (elements.isEmpty) "" else "/" + elements.map(escape).mkString("/")
 
-    private def escape(element: String) = element.replaceAllLiterally("~", "~0").replaceAllLiterally("/", "~1")
+    private def escape(element: String) = if (!rfc6901Escaping && element.startsWith("/")) s"[$element]" else {
+      element.replaceAllLiterally("~", "~0").replaceAllLiterally("/", "~1")
+    }
+
     private def reverse = copy(elements.reverse)
   }
 
@@ -94,7 +97,13 @@ case class json(lhsName: String, rhsName: String) { json =>
 
 trait JsonDelta {
   implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] = jsonDelta.contramap[A](EncodeJson.of[A].encode)
-  implicit val jsonDelta: Delta.Aux[Json, Json] = Delta.from[Json](delta)
+
+  implicit val jsonDelta: Delta.Aux[Json, Json] with Patch[Json] = new Delta[Json] with Patch[Json] {
+    type Out = Json
+
+    def apply(left: Json, right: Json): Out = delta(left, right)
+    def isEmpty(json: Json): Boolean = json == Json.jEmptyObject
+  }
 
   def delta(left: Json, right: Json): Json
 }

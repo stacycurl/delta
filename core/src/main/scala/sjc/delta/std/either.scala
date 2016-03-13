@@ -1,6 +1,6 @@
 package sjc.delta.std
 
-import sjc.delta.Delta
+import sjc.delta.{Patch, Delta}
 
 object either {
   implicit def deltaEither[L, R, LOut, ROut](
@@ -23,4 +23,13 @@ object either {
   case class BothRight[ROut](out: ROut) extends EitherPatch[Nothing, Nothing, Nothing, ROut]
   case class WasLeft[L, R](left: L, right: R) extends EitherPatch[L, R, Nothing, Nothing]
   case class WasRight[L, R](right: R, left: L) extends EitherPatch[L, R, Nothing, Nothing]
+
+  object EitherPatch {
+    implicit def eitherPatchEmpty[L, R, LOut: Patch, ROut: Patch]: Patch[EitherPatch[L, R, LOut, ROut]] =
+      Patch.create[EitherPatch[L, R, LOut, ROut]](isEmptyFn = {
+        case BothLeft(lout)  => Patch[LOut].isEmpty(lout)
+        case BothRight(rout) => Patch[ROut].isEmpty(rout)
+        case _               => false
+      })
+  }
 }

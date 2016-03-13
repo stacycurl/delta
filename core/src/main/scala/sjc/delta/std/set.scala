@@ -1,6 +1,6 @@
 package sjc.delta.std
 
-import sjc.delta.Delta
+import sjc.delta.{Patch, Delta}
 
 
 object set {
@@ -11,5 +11,12 @@ object set {
       SetPatch[A](added = right -- left, removed = left -- right)
   }
 
-  case class SetPatch[A](added: Set[A], removed: Set[A])
+  case class SetPatch[A](added: Set[A], removed: Set[A]) {
+    def isEmpty = added.isEmpty && removed.isEmpty
+  }
+
+  object SetPatch {
+    implicit def emptySetPatch[A]: Patch[SetPatch[A]] = EmptySetPatch.asInstanceOf[Patch[SetPatch[A]]]
+    private val EmptySetPatch = Patch.create[SetPatch[Nothing]](_.isEmpty)
+  }
 }

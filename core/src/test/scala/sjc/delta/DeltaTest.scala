@@ -38,6 +38,18 @@ class DeltaTest extends FreeSpec with Matchers {
     HasInt(1).delta(HasInt(2)) shouldBe 1.delta(2)
   }
 
+  "function" in {
+    import sjc.delta.std.int._
+    import sjc.delta.Delta.function.function1Delta
+
+    val square = (i: Int) => i * i
+    val cube = (i: Int) => i * i * i
+
+    val delta = square.delta(cube)
+
+    delta(3) shouldBe(27 - 9)
+  }
+
   "fallback delta test" in {
     import Delta.fallback._
 

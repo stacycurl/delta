@@ -54,18 +54,6 @@ class DeltaTest extends FreeSpec with Matchers {
 //      .must(equal(1.delta(3) :: Inl(Inl(10.delta(30)) :: Inl(Inl(HNil)) :: HNil) :: HNil))
   }
 
-  "function" in {
-    import sjc.delta.std.int._
-    import sjc.delta.generic.GenericDelta.function.function1Delta
-
-    val square = (i: Int) => i * i
-    val cube = (i: Int) => i * i * i
-
-    val delta = square.delta(cube)
-
-    delta(3) shouldBe(27 - 9)
-  }
-
   case class HasInt(i: Int)
   case class RecursiveProduct(i: Int, o: Option[RecursiveProduct])
 

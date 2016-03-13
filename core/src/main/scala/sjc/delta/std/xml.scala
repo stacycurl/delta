@@ -5,6 +5,7 @@ import sjc.delta.Delta
 import scala.annotation.tailrec
 import scala.xml._
 
+
 object xml extends xml("left", "right") {
   object beforeAfter    extends xml("before", "after")
   object actualExpected extends xml("actual", "expected")

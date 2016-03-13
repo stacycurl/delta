@@ -72,14 +72,4 @@ object GenericDelta {
       case (left, right) => delta(left, right)
     }
   }
-
-  object function {
-    implicit def function1Delta[A, B](
-      implicit delta: Lazy[Delta[B]]
-    ): Delta.Aux[A => B, A => delta.value.Out] = new Delta[A => B] {
-      type Out = A => delta.value.Out
-
-      override def apply(left: A => B, right: A => B): Out = (a: A) => delta.value(left(a), right(a))
-    }
-  }
 }

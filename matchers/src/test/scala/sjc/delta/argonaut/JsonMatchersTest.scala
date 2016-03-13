@@ -3,7 +3,7 @@ package sjc.delta.argonaut
 import argonaut.Json.jString
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{FreeSpec, Matchers}
-import sjc.delta.argonaut.matchers.{beDifferentTo, beIdenticalTo}
+import sjc.delta.argonaut.matchers.{beDifferentTo, beIdenticalTo, prettyJson}
 import sjc.delta.argonaut.json.actualExpected.flat.{jsonDelta, encodeJsonToDelta}
 
 
@@ -28,26 +28,20 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
       )
 
       intercept[TestFailedException] {
-        jString("def") should beDifferentTo(jString("abc")).withDelta(parse("""
+        parse("""{"name": "bob"}""") should beDifferentTo(parse("""{"name": "sue"}""")).withDelta(parse("""
           |{
-          |  "" : {
-          |    "actual" : "def",
-          |    "expected" : "foo"
+          |  "/name" : {
+          |    "actual" : "bob",
+          |    "expected" : "susan"
           |  }
           |}""".stripMargin)
         )
       }.message shouldBe Some(
-        """Difference was not as expected
-          |  actual: {
-          |    "" : {
-          |      "actual" : "def",
-          |      "expected" : "abc"
-          |    }
-          |  }
-          |  expected: {
-          |    "" : {
-          |      "actual" : "def",
-          |      "expected" : "foo"
+        """Detected the following differences:
+          |  {
+          |    "/[/name]/expected" : {
+          |      "actual" : "sue",
+          |      "expected" : "susan"
           |    }
           |  }""".stripMargin
       )
