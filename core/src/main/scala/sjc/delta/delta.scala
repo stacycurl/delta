@@ -7,24 +7,29 @@ trait Delta[In] {
   type Out
 
   def apply(left: In, right: In): Out
-
-  def map[B](f: Out => B): Delta.Aux[In, B] = new Delta.Mapped[In, Out, B](f, this)
-  def contramap[B](f: B => In): Delta.Aux[B, Out] = new Delta.Contramapped[In, Out, B](f, this)
-
-  def andThen[Out2](out: Out)(implicit deltaOut2: Delta.Aux[Out, Out2]): Delta.Aux[In, Out2] =
-    new Delta.AndThen[In, Out, Out2](out, this, deltaOut2)
 }
 
 object Delta {
-  def apply[In](implicit delta: Delta[In]): Delta.Aux[In, delta.Out] = delta
+  def apply[In](implicit delta: Delta[In]): Aux[In, delta.Out] = delta
 
   type Aux[In, Out0] = Delta[In] { type Out = Out0 }
 
   def from[In] = new From[In]
 
   class From[In] {
-    def curried[Out](f: In => In => Out): Delta.Aux[In, Out] = apply(Function.uncurried(f))
-    def apply[Out](f: (In, In) => Out): Delta.Aux[In, Out] = new Function[In, Out](f)
+    def curried[Out](f: In => In => Out): Aux[In, Out] = apply(Function.uncurried(f))
+    def apply[Out](f: (In, In) => Out): Aux[In, Out] = new Function[In, Out](f)
+  }
+
+  implicit class DeltaDeltaOps[A, B](val delta: Aux[A, B]) extends AnyVal {
+    def map[C](f: B => C): Delta.Aux[A, C] = new Delta.Mapped[A, B, C](f, delta)
+
+    def contramap[In](f: In => A): Delta.Aux[In, B] = new Delta.Contramapped[A, B, In](f, delta)
+
+    def andThen[C](out: B)(implicit deltaOut2: Delta.Aux[B, C]): Delta.Aux[A, C] =
+      new Delta.AndThen[A, B, C](out, delta, deltaOut2)
+
+    def lift[In]: Aux[In => A, In => B] = function.function1Delta[In, A, B](delta)
   }
 
   implicit class DeltaOps[In](val left: In) extends AnyVal {
@@ -32,7 +37,7 @@ object Delta {
   }
 
   object function {
-    implicit def function1Delta[A, B, C](implicit delta: Delta.Aux[B, C]): Delta.Aux[A => B, A => C] = new Delta[A => B] {
+    implicit def function1Delta[A, B, C](implicit delta: Aux[B, C]): Aux[A => B, A => C] = new Delta[A => B] {
       type Out = A => C
 
       def apply(left: A => B, right: A => B): Out = (a: A) => delta(left(a), right(a))
@@ -53,20 +58,20 @@ object Delta {
     def apply(left: In, right: In): Out = f(left, right)
   }
 
-  private class Mapped[A, B, C](f: B => C, delta: Delta.Aux[A, B]) extends Delta[A] {
+  private class Mapped[A, B, C](f: B => C, delta: Aux[A, B]) extends Delta[A] {
     type Out = C
 
     def apply(left: A, right: A): Out = f(delta(left, right))
   }
 
-  private class Contramapped[A, B, C](f: C => A, delta: Delta.Aux[A, B]) extends Delta[C] {
+  private class Contramapped[A, B, C](f: C => A, delta: Aux[A, B]) extends Delta[C] {
     type Out = B
 
     def apply(left: C, right: C): Out = delta(f(left), f(right))
   }
 
   private class AndThen[In, Out1, Out2](
-    out1: Out1, first: Delta.Aux[In, Out1], second: Delta.Aux[Out1, Out2]
+    out1: Out1, first: Aux[In, Out1], second: Aux[Out1, Out2]
   ) extends Delta[In] {
 
     type Out = Out2

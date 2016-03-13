@@ -39,7 +39,7 @@ class DeltaTest extends FreeSpec with Matchers {
   }
 
   "function" in {
-    import sjc.delta.std.int._
+    import sjc.delta.std.int.deltaInt
     import sjc.delta.Delta.function.function1Delta
 
     val square = (i: Int) => i * i
@@ -47,7 +47,13 @@ class DeltaTest extends FreeSpec with Matchers {
 
     val delta = square.delta(cube)
 
-    delta(3) shouldBe(27 - 9)
+    delta(3) shouldBe(square(3) delta cube(3))
+
+    val x = deltaInt.lift[Int]
+
+    val y = x.apply(square, cube)
+
+    println(y(3))
   }
 
   "fallback delta test" in {
