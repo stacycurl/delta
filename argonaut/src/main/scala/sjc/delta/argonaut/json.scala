@@ -10,7 +10,7 @@ object json extends json("left", "right", false) {
   object actualExpected extends json("actual", "expected", false)
 }
 
-case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { json =>
+case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { json ⇒
   object flat extends JsonDelta {
     def delta(left: Json, right: Json): Json = Json.jObjectFields(
       changes(left, right).map { case (pointer, change) ⇒ pointer.asString → flatten(change) }: _*
@@ -23,9 +23,9 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
     }
 
     private def add(json: Json, path: List[String], value: Json): Json = path match { // TODO: make tail recursive
-      case Nil          => json
-      case last :: Nil  => json.withObject(o => o + (last, value))
-      case head :: tail => json.withObject(o => o + (head, add(o.apply(head).getOrElse(jEmptyObject), tail, value)))
+      case Nil          ⇒ json
+      case last :: Nil  ⇒ json.withObject(o ⇒ o + (last, value))
+      case head :: tail ⇒ json.withObject(o ⇒ o + (head, add(o.apply(head).getOrElse(jEmptyObject), tail, value)))
     }
   }
 
@@ -61,9 +61,9 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
   }
 
   private def flatten(change: Change): Json = change match {
-    case Add(right)           ⇒                        (rhsName -> right) ->: jEmptyObject
-    case Remove(left)         ⇒ (lhsName -> left)                         ->: jEmptyObject
-    case Replace(left, right) ⇒ (lhsName -> left)  ->: (rhsName -> right) ->: jEmptyObject
+    case Add(right)           ⇒                       (rhsName → right) ->: jEmptyObject
+    case Remove(left)         ⇒ (lhsName → left)                        ->: jEmptyObject
+    case Replace(left, right) ⇒ (lhsName → left)  ->: (rhsName → right) ->: jEmptyObject
   }
 
   private sealed trait Change

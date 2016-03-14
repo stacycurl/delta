@@ -60,10 +60,10 @@ class DeltaTest extends FreeSpec with Matchers {
 /*
   implicit def coproductEqual[C <: Coproduct]: Equal[C] = Equal.equalA[C]
 
-  implicit def coproductShow[C0 <: Coproduct]: Show[C0] = Show.show[C0](c0 => {
+  implicit def coproductShow[C0 <: Coproduct]: Show[C0] = Show.show[C0](c0 ⇒ {
     def recurse[C <: Coproduct](c: C): String = c match {
-      case Inl(head) => s"Inl(${head})"
-      case Inr(tail) => s"Inr(${recurse(tail)})"
+      case Inl(head) ⇒ s"Inl(${head})"
+      case Inr(tail) ⇒ s"Inr(${recurse(tail)})"
     }
 
     recurse(c0)

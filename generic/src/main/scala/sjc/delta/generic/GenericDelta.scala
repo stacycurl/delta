@@ -38,10 +38,10 @@ object GenericDelta {
       type Out = Option[deltaT.value.Out] :+: T :+: T :+: CNil
 
       def apply(before: Option[T], after: Option[T]): Out = (before, after) match {
-        case (None, None)       => Inl(None)
-        case (Some(b), Some(a)) => Inl(Some(deltaT.value.apply(b, a)))
-        case (Some(b), None)    => Inr(Inl(b))
-        case (None, Some(a))    => Inr(Inr(Inl(a)))
+        case (None, None)       ⇒ Inl(None)
+        case (Some(b), Some(a)) ⇒ Inl(Some(deltaT.value.apply(b, a)))
+        case (Some(b), None)    ⇒ Inr(Inl(b))
+        case (None, Some(a))    ⇒ Inr(Inr(Inl(a)))
       }
     }
   */
@@ -60,16 +60,16 @@ object GenericDelta {
     type Out = CPatch[H, hDelta.Out, T, tDelta.value.Out]
 
     def apply(left: H :+: T, right: H :+: T): CPatch[H, hDelta.Out, T, tDelta.value.Out] = (left, right) match {
-      case (Inl(lLeft), Inl(lRight)) => Inl(Inl(hDelta(lLeft, lRight)))
-      case (Inr(rLeft), Inr(rRight)) => Inr(tDelta.value(rLeft, rRight))
-      case (Inl(lLeft), Inr(rRight)) => Inl(Inr(Inl((lLeft, rRight))))
-      case (Inr(rLeft), Inl(lRight)) => Inl(Inr(Inr(Inl((rLeft, lRight)))))
+      case (Inl(lLeft), Inl(lRight)) ⇒ Inl(Inl(hDelta(lLeft, lRight)))
+      case (Inr(rLeft), Inr(rRight)) ⇒ Inr(tDelta.value(rLeft, rRight))
+      case (Inl(lLeft), Inr(rRight)) ⇒ Inl(Inr(Inl((lLeft, rRight))))
+      case (Inr(rLeft), Inl(lRight)) ⇒ Inl(Inr(Inr(Inl((rLeft, lRight)))))
     }
   }
 
   object deltaPoly extends Poly2 {
     implicit def delta[In](implicit delta: Delta[In]) = at[In, In] {
-      case (left, right) => delta(left, right)
+      case (left, right) ⇒ delta(left, right)
     }
   }
 }

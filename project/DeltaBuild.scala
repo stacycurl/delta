@@ -5,7 +5,7 @@ import sbt.Keys._
 
 object DeltaBuild extends Build {
   lazy val delta = (project in file(".")
-    aggregate(core, generic, argonaut, matchers)
+    aggregate(core, cats, scalaz, generic, argonaut, matchers)
     settings(commonSettings: _*)
     settings(publish := (), publishLocal := ())
   )
@@ -13,10 +13,17 @@ object DeltaBuild extends Build {
   lazy val core = (project in file("core")
     settings(commonSettings: _*)
     settings(Publishing.settings: _*)
-    settings(libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-xml"   % "1.0.3",
-      "org.scalaz"             %% "scalaz-core" % "7.1.0" % "test"
-    ))
+    settings(libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.3")
+  )
+
+  lazy val cats = (project configure dependantProject("cats")
+    settings(libraryDependencies += "org.typelevel" %% "cats" % "0.4.1")
+    settings addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.7.1")
+  )
+
+  lazy val scalaz = (project configure dependantProject("scalaz")
+    settings(libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.2.1")
+    settings addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.7.1")
   )
 
   lazy val generic = (project configure dependantProject("generic")

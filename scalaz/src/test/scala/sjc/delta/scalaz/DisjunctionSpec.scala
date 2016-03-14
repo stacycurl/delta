@@ -1,17 +1,19 @@
-package sjc.delta.std
+package sjc.delta.scalaz
 
-import org.scalatest.{Matchers, FreeSpec}
+import org.scalatest.{FreeSpec, Matchers}
+import sjc.delta.std.either._
 
+import scalaz.\/
 import sjc.delta.Delta.DeltaOps
-import sjc.delta.std.either.{deltaEither, EitherPatch, BothLeft, BothRight, WasLeft, WasRight}
+import sjc.delta.scalaz.disjunction.deltaV
 import sjc.delta.std.int.deltaInt
 
 
-class EitherTest extends FreeSpec with Matchers {
-  "either" in {
-    type E = Either[Int, Int]
-    def left(l: Int): E = Left(l)
-    def right(r: Int): E = Right(r)
+class DisjunctionSpec extends FreeSpec with Matchers {
+  "\\/" in {
+    type E = \/[Int, Int]
+    def left(l: Int): E = \/.left[Int, Int](l)
+    def right(r: Int): E = \/.right[Int, Int](r)
 
     left(2).delta(left(10))   shouldBe bothLeft(8)
     right(2).delta(right(10)) shouldBe bothRight(8)

@@ -45,8 +45,8 @@ class ReifyTest extends FreeSpec with Matchers {
   }
 
   "map reify" in {
-    Map(123 -> List(456)).reify.asString shouldBe """Map(123 -> List(456))"""
-    Map("123" -> List("456")).reify.asString shouldBe """Map("123" -> List("456"))"""
+    Map(123 → List(456)).reify.asString shouldBe """Map(123 -> List(456))"""
+    Map("123" → List("456")).reify.asString shouldBe """Map("123" -> List("456"))"""
   }
 
   "option reify" in {

@@ -10,10 +10,10 @@ object either {
       type Out = EitherPatch[L, R, LOut, ROut]
 
       def apply(eleft: Either[L, R], eright: Either[L, R]): EitherPatch[L, R, LOut, ROut] = (eleft, eright) match {
-        case (Left(left),  Left(right))  => BothLeft[LOut](ldelta(left, right))
-        case (Right(left), Right(right)) => BothRight[ROut](rdelta(left, right))
-        case (Left(left),  Right(right)) => WasLeft(left, right)
-        case (Right(left), Left(right))  => WasRight(left, right)
+        case (Left(left),  Left(right))  ⇒ BothLeft[LOut](ldelta(left, right))
+        case (Right(left), Right(right)) ⇒ BothRight[ROut](rdelta(left, right))
+        case (Left(left),  Right(right)) ⇒ WasLeft(left, right)
+        case (Right(left), Left(right))  ⇒ WasRight(left, right)
       }
     }
   }
@@ -27,9 +27,9 @@ object either {
   object EitherPatch {
     implicit def eitherPatchEmpty[L, R, LOut: Patch, ROut: Patch]: Patch[EitherPatch[L, R, LOut, ROut]] =
       Patch.create[EitherPatch[L, R, LOut, ROut]](isEmptyFn = {
-        case BothLeft(lout)  => Patch[LOut].isEmpty(lout)
-        case BothRight(rout) => Patch[ROut].isEmpty(rout)
-        case _               => false
+        case BothLeft(lout)  ⇒ Patch[LOut].isEmpty(lout)
+        case BothRight(rout) ⇒ Patch[ROut].isEmpty(rout)
+        case _               ⇒ false
       })
   }
 }

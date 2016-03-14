@@ -10,8 +10,8 @@ object map {
     type Out = MapPatch[K, V, VOut]
 
     def apply(left: Map[K, V], right: Map[K, V]): MapPatch[K, V, VOut] = {
-      val changed: Map[K, VOut] = (left.keySet & right.keySet).map(k => {
-        k -> deltaV(left(k), right(k))
+      val changed: Map[K, VOut] = (left.keySet & right.keySet).map(k ⇒ {
+        k → deltaV(left(k), right(k))
       })(scala.collection.breakOut)
 
       MapPatch[K, V, VOut](right -- left.keySet, left -- right.keySet, changed)
