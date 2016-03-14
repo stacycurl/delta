@@ -40,7 +40,7 @@ class DeltaTest extends FreeSpec with Matchers {
 
   "function" in {
     import sjc.delta.std.int.deltaInt
-    import sjc.delta.Delta.function.function1Delta
+    import sjc.delta.Delta.function.lift
 
     val square = (i: Int) ⇒ i * i
     val cube = (i: Int) ⇒ i * i * i
