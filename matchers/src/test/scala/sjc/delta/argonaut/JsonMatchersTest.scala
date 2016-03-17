@@ -75,7 +75,24 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
           |      "actual" : "def",
           |      "expected" : "abc"
           |    }
-          |  }""".stripMargin)
+          |  }""".stripMargin
+      )
+    }
+
+    "beIdenticalTo.ignoring" in {
+      parse("""{"a": 1, "b": 2}""") should beIdenticalTo(parse("""{"a": 1, "b": 3}""")).ignoring("/b")
+
+      intercept[TestFailedException] {
+        parse("""{"a": 1, "b": 2, "c": 3}""") should beIdenticalTo(parse("""{"a": 1, "b": 3, "c": 4}""")).ignoring("/b")
+      }.message shouldBe Some(
+        """Detected the following differences:
+          |  {
+          |    "/c" : {
+          |      "actual" : 3,
+          |      "expected" : 4
+          |    }
+          |  }""".stripMargin
+      )
     }
 
     "not beIdenticalTo" in {

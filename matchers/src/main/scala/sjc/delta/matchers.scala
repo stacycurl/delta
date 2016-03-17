@@ -14,6 +14,9 @@ object matchers {
   class DeltaMatcher[A, B: Patch: Pretty](expected: A, positive: Boolean)(implicit deltaA: Delta.Aux[A, B])
     extends Matcher[A] {
 
+    private[delta] def map[C: Patch: Pretty](f: B ⇒ C): DeltaMatcher[A, C] =
+      new DeltaMatcher[A, C](expected, positive)(Patch[C], Pretty[C], deltaA.map(f))
+
     def withDelta[C: Patch: Pretty](expectedDelta: B)(implicit deltaC: Delta.Aux[B, C]): DeltaMatcher[A, C] =
       new DeltaMatcher[A, C](expected, true)(Patch[C], Pretty[C], deltaA.andThen(expectedDelta))
 
