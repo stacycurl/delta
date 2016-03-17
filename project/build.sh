@@ -1,6 +1,7 @@
 #!/bin/bash
 
-CHANGES=$(git diff-tree --no-commit-id --name-only -r ${TRAVIS_COMMIT_RANGE:-HEAD})
+RANGE=$(echo ${TRAVIS_COMMIT_RANGE:-HEAD} | sed -e 's/\.\.\./../g')
+CHANGES=$(git diff-tree -r $RANGE)
 
 if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$CHANGES" == *"version.sbt"* ]]; then
     PUBLISH="publish"
