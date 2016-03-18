@@ -6,7 +6,7 @@ import sjc.delta.Delta
 import sjc.delta.Delta.Aux
 import sjc.delta.std.either.{EitherPatch, BothLeft, BothRight, WasLeft, WasRight}
 
-import scalaz.{Applicative, Contravariant, Cozip, Equal, Monad, Profunctor, Representable, Show, Zip, \/, -\/, \/-}
+import scalaz.{Applicative, Contravariant, Cozip, Equal, Monad, Profunctor, Representable, Show, Unzip, Zip, \/, -\/, \/-}
 
 
 object instances {
@@ -33,6 +33,10 @@ object instances {
 
   implicit def deltaZip[In]: Zip[Aux[In, ?]] = new Zip[Aux[In, ?]] {
     def zip[A, B](deltaToA: ⇒ Aux[In, A], deltaToB: ⇒ Aux[In, B]): Aux[In, (A, B)] = deltaToA.zip(deltaToB)
+  }
+
+  implicit def deltaUnzip[In]: Unzip[Aux[In, ?]] = new Unzip[Aux[In, ?]] {
+    def unzip[A, B](deltaAB: Aux[In, (A, B)]): (Aux[In, A], Aux[In, B]) = deltaAB.unzip
   }
 
   implicit def deltaRepresentable[In]: Representable[Aux[In, ?], (In, In)] =

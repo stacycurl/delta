@@ -1,6 +1,9 @@
 package sjc.delta
 
+import scala.language.implicitConversions
+
 import org.scalatest.matchers.{MatchResult, Matcher}
+import scala.reflect.ClassTag
 
 
 object matchers {
@@ -18,7 +21,7 @@ object matchers {
       new DeltaMatcher[A, C](expected, positive)(Patch[C], Pretty[C], deltaA.map(f))
 
     def withDelta[C: Patch: Pretty](expectedDelta: B)(implicit deltaC: Delta.Aux[B, C]): DeltaMatcher[A, C] =
-      new DeltaMatcher[A, C](expected, true)(Patch[C], Pretty[C], deltaA.andThen(expectedDelta))
+      new DeltaMatcher[A, C](expected, true)(Patch[C], Pretty[B].to[C], deltaA.andThen(expectedDelta))
 
     def apply(actual: A): MatchResult = {
       val delta = deltaA(actual, expected)
@@ -35,15 +38,31 @@ object matchers {
   trait Pretty[A] {
     def indent(a: A) = apply(a).replaceAllLiterally("\n", "\n  ")
     def apply(a: A): String
+    def to[B: Pretty]: Pretty[B] = if (Pretty[B].classTag.equals(classTag)) this.asInstanceOf[Pretty[B]] else Pretty[B]
+
+    protected val classTag: ClassTag[A]
   }
 
   object Pretty {
     def apply[A](implicit pretty: Pretty[A]): Pretty[A] = pretty
 
-    def create[A](pretty: A ⇒ String): Pretty[A] = new Pretty[A] {
+    def create[A: ClassTag](pretty: A ⇒ String): Pretty[A] = new Pretty[A] {
       def apply(a: A): String = pretty(a)
+      protected val classTag: ClassTag[A] = implicitly[ClassTag[A]]
     }
 
-    implicit def toStringPretty[A]: Pretty[A] = create[A](_.toString)
+    implicit def toStringPretty[A: ClassTag]: Pretty[A] = create[A](_.toString)
+  }
+
+  object syntax {
+    import org.scalatest.Matchers._
+
+    implicit def anyDeltaMatcherOps[A, B: Patch: Pretty](actual: A)(implicit delta: Delta.Aux[A, B])
+      : AnyDeltaMatcherOps[A, B] = new AnyDeltaMatcherOps[A, B](actual)
+
+    class AnyDeltaMatcherOps[A, B: Patch: Pretty](val actual: A)(implicit delta: Delta.Aux[A, B]) {
+      def <=>(expected: A): Unit = actual should beIdenticalTo(expected)
+      def </>(expected: A): Unit = actual should beDifferentTo(expected)
+    }
   }
 }

@@ -5,6 +5,7 @@ import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{FreeSpec, Matchers}
 import sjc.delta.argonaut.matchers.{beDifferentTo, beIdenticalTo, prettyJson}
 import sjc.delta.argonaut.json.actualExpected.flat.{jsonDelta, encodeJsonToDelta}
+import sjc.delta.matchers.syntax.anyDeltaMatcherOps
 
 
 class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
@@ -100,6 +101,32 @@ class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
 
       intercept[TestFailedException] {
         jString("def") should not(beIdenticalTo(jString("def")))
+      }.message shouldBe Some("No differences detected")
+    }
+  }
+
+  "syntax" - {
+    "<=>" in {
+      jString("def") <=> jString("def")
+
+      intercept[TestFailedException] {
+        jString("def") <=> jString("abc")
+      }.message shouldBe Some(
+        """Detected the following differences:
+          |  {
+          |    "" : {
+          |      "actual" : "def",
+          |      "expected" : "abc"
+          |    }
+          |  }""".stripMargin
+      )
+    }
+
+    "</>" in {
+      jString("def") </> jString("abc")
+
+      intercept[TestFailedException] {
+        jString("def") </> jString("def")
       }.message shouldBe Some("No differences detected")
     }
   }

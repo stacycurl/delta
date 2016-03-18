@@ -16,7 +16,7 @@ object set {
   }
 
   object SetPatch {
-    implicit def emptySetPatch[A]: Patch[SetPatch[A]] = EmptySetPatch.asInstanceOf[Patch[SetPatch[A]]]
-    private val EmptySetPatch = Patch.create[SetPatch[Nothing]](_.isEmpty)
+    implicit def setPatch[A]: Patch[SetPatch[A]] = SetPatchInstance.asInstanceOf[Patch[SetPatch[A]]]
+    private val SetPatchInstance = Patch.create[SetPatch[Nothing]](_.isEmpty)
   }
 }

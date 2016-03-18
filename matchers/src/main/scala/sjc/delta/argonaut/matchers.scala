@@ -20,7 +20,7 @@ object matchers {
   implicit val prettyJson: Pretty[Json] =
     Pretty.create[Json](json ⇒ PrettyParams.spaces2.copy(preserveOrder = true).pretty(json))
 
-  implicit val emptyJson: Patch[Json] =
+  implicit val patchJson: Patch[Json] =
     Patch.create[Json](_ == Json.jEmptyObject)
 }
 

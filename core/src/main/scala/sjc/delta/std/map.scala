@@ -23,7 +23,9 @@ object map {
   }
 
   object MapPatch {
-    implicit def emptyMapPatch[K, V, VOut] = EmptyMapPatch.asInstanceOf[Patch[MapPatch[K, V, VOut]]]
-    private val EmptyMapPatch = Patch.create[MapPatch[Nothing, Nothing, Nothing]](_.isEmpty)
+    implicit def mapPatch[K, V, VOut]: Patch[MapPatch[K, V, VOut]] =
+      MapPatchInstance.asInstanceOf[Patch[MapPatch[K, V, VOut]]]
+
+    private val MapPatchInstance = Patch.create[MapPatch[Nothing, Nothing, Nothing]](_.isEmpty)
   }
 }

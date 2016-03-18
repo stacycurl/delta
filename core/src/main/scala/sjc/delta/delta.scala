@@ -27,11 +27,17 @@ object Delta {
     def flatMap[C](f: B ⇒ Aux[A, C]):          Aux[A, C]             = new Delta.FlatMapped[A, B, C](delta, f)
     def contramap[In](f: In ⇒ A):              Aux[In, B]            = new Delta.Contramapped[A, B, In](delta, f)
     def dimap[In, C](f: In ⇒ A, g: B ⇒ C):     Aux[In, C]            = new Delta.DiMapped[In, A, B, C](delta, f, g)
-    def ***[C, D](other: Aux[C, D]):           Aux[(A, C), (B, D)]   = new Delta.And[A, B, C, D](delta, other)
     def zip[C](other: Aux[A, C]):              Aux[A, (B, C)]        = new Delta.Zipped[A, B, C](delta, other)
     def applyTo[C](other: Aux[A, B ⇒ C]):      Aux[A, C]             = new Delta.Apply[A, B, C](other, delta)
     def andThen[C](out: B)(implicit deltaOut2: Aux[B, C]): Aux[A, C] = new Delta.AndThen[A, B, C](out, delta, deltaOut2)
     def lift[In]:                              Aux[In ⇒ A, In ⇒ B]   = new Delta.Lift[In, A, B](delta)
+    def ***[C, D](other: Aux[C, D]):           Aux[(A, C), (B, D)]   = new Delta.Split[A, B, C, D](delta, other)
+  }
+
+  implicit class DeltaToTupleDeltaOps[A, B, C](val delta: Aux[A, (B, C)]) extends AnyVal {
+    def unzip: (Aux[A, B], Aux[A, C]) = (_1, _2)
+    def _1: Aux[A, B] = Delta.from[A].curried(left ⇒ right ⇒ delta(left, right)._1)
+    def _2: Aux[A, C] = Delta.from[A].curried(left ⇒ right ⇒ delta(left, right)._2)
   }
 
   implicit class DeltaOps[In](val left: In) extends AnyVal {
@@ -79,7 +85,7 @@ object Delta {
     def apply(left: A, right: A): D = g(delta(f(left), f(right)))
   }
 
-  private class And[A, B, C, D](deltaAB: Aux[A, B], deltaCD: Aux[C, D]) extends Delta[(A, C)] {
+  private class Split[A, B, C, D](deltaAB: Aux[A, B], deltaCD: Aux[C, D]) extends Delta[(A, C)] {
     type Out = (B, D)
     def apply(left: (A, C), right: (A, C)): Out = (deltaAB(left._1, right._1), deltaCD(left._2, right._2))
   }
