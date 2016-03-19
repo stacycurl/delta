@@ -7,7 +7,7 @@ import sjc.delta.Reify._
 import sjc.delta.generic.GenericReify._
 
 
-class ReifyTest extends FreeSpec with Matchers {
+class ReifySpec extends FreeSpec with Matchers {
   "hlist reify" in {
     (123 :: "123" :: HNil).reify.asString shouldBe """123 :: "123" :: HNil"""
   }

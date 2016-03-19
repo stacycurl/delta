@@ -5,7 +5,7 @@ import scala.language.existentials
 import org.scalatest.{Matchers, FreeSpec}
 
 
-class DeltaTest extends FreeSpec with Matchers {
+class DeltaSpec extends FreeSpec with Matchers {
   import sjc.delta.Delta._
 
   "int" in {

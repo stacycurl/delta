@@ -6,7 +6,7 @@ import sjc.delta.Delta.DeltaOps
 import sjc.delta.argonaut.json.beforeAfter.flat.{encodeJsonToDelta, jsonDelta}
 
 
-class FlatJsonTest extends FreeSpec with JsonTestUtil {
+class FlatJsonSpec extends FreeSpec with JsonSpecUtil {
   "should ignore identical elements" in {
     jNull          delta jNull          jsonShouldEqual jEmptyObject
     jBool(true)    delta jBool(true)    jsonShouldEqual jEmptyObject

@@ -7,7 +7,7 @@ import sjc.delta.std.either.{deltaEither, EitherPatch, BothLeft, BothRight, WasL
 import sjc.delta.std.int.deltaInt
 
 
-class EitherTest extends FreeSpec with Matchers {
+class EitherSpec extends FreeSpec with Matchers {
   "either" in {
     type E = Either[Int, Int]
     def left(l: Int): E = Left(l)

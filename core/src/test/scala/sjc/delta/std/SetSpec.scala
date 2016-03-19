@@ -5,7 +5,7 @@ import sjc.delta.Delta.DeltaOps
 import sjc.delta.std.set.{deltaSet, SetPatch}
 
 
-class SetTest extends FreeSpec with Matchers {
+class SetSpec extends FreeSpec with Matchers {
   "set" in {
     val expected = SetPatch(removed = Set(1), added = Set(3))
 

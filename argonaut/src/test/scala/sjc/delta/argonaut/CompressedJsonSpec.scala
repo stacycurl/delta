@@ -5,7 +5,7 @@ import sjc.delta.Delta.DeltaOps
 import sjc.delta.argonaut.json.beforeAfter.compressed.{encodeJsonToDelta, jsonDelta}
 
 
-class CompressedJsonTest extends FreeSpec with JsonTestUtil {
+class CompressedJsonSpec extends FreeSpec with JsonSpecUtil {
   "complex example" in {
     complexBefore delta complexAfter jsonShouldEqual """{
     |  "items" : {

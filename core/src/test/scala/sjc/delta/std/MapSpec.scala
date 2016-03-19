@@ -7,7 +7,7 @@ import sjc.delta.std.int.deltaInt
 import sjc.delta.std.map.{deltaMap, MapPatch}
 
 
-class MapTest extends FreeSpec with Matchers {
+class MapSpec extends FreeSpec with Matchers {
   "simple" in {
     leftM delta rightM  shouldBe expectedM
   }

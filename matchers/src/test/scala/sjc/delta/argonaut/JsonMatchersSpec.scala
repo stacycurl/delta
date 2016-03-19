@@ -8,7 +8,7 @@ import sjc.delta.argonaut.json.actualExpected.flat.{jsonDelta, encodeJsonToDelta
 import sjc.delta.matchers.syntax.anyDeltaMatcherOps
 
 
-class JsonMatchersTest extends FreeSpec with Matchers with JsonTestUtil {
+class JsonMatchersSpec extends FreeSpec with Matchers with JsonSpecUtil {
   "json" - {
     "beDifferentTo" in {
       jString("def") should beDifferentTo(jString("abc"))

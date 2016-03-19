@@ -9,7 +9,7 @@ import shapeless._
 import sjc.delta.generic.GenericDelta.deltaPoly
 
 
-class DeltaTest extends FreeSpec with Matchers {
+class DeltaSpec extends FreeSpec with Matchers {
   import sjc.delta.Delta._
 
   "hlist" in {

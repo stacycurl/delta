@@ -7,7 +7,7 @@ import sjc.delta.Delta.DeltaOps
 import sjc.delta.std.xml.{nodeDelta, Changed, Missing, Extra, NodePatch, SingleNodePatch}
 
 
-class NodeTest extends FreeSpec with Matchers {
+class NodeSpec extends FreeSpec with Matchers {
   "node" in {
     test(
       <abc/>,

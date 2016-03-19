@@ -4,7 +4,7 @@ import Reify.ReifyOps
 import org.scalatest.{Matchers, FreeSpec}
 
 
-class ReifyTest extends FreeSpec with Matchers {
+class ReifySpec extends FreeSpec with Matchers {
   "boolean reify" in {
     false.reify.asString shouldBe "false"
     true.reify.asString shouldBe "true"

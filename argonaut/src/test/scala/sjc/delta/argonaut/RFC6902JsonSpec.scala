@@ -5,7 +5,7 @@ import sjc.delta.Delta.DeltaOps
 import sjc.delta.argonaut.json.rfc6902.{encodeJsonToDelta, jsonDelta}
 
 
-class RFC6902JsonTest extends FreeSpec with JsonTestUtil {
+class RFC6902JsonSpec extends FreeSpec with JsonSpecUtil {
   "add" in {
     parse("{}") delta parse("""{"parent": "def"}""") jsonShouldEqual """[{"op": "add", "path": "/parent", "value": "def"}]"""
     parse("[]") delta parse("""["def"]""")           jsonShouldEqual """[{"op": "add", "path": "/0", "value": "def"}]"""

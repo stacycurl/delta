@@ -6,7 +6,7 @@ import sjc.delta.matchers.{beDifferentTo, beIdenticalTo}
 import sjc.delta.std.int.deltaInt
 
 
-class MatchersTest extends FreeSpec with Matchers {
+class MatchersSpec extends FreeSpec with Matchers {
   "beDifferentTo" in {
     1 should beDifferentTo(20)
 

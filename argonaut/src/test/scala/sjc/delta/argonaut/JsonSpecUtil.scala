@@ -5,8 +5,8 @@ import argonaut.{CodecJson, Json, Parse, PrettyParams}
 import org.scalatest.Matchers
 
 
-trait JsonTestUtil extends Matchers {
-  implicit class JsonTestOps(json: Json) {
+trait JsonSpecUtil extends Matchers {
+  implicit class JsonSpecOps(json: Json) {
     def jsonShouldEqual(expected: String): Unit = json jsonShouldEqual parse(expected)
     def jsonShouldEqual(expected: Json): Unit = preserveOrder.pretty(json) shouldBe preserveOrder.pretty(expected)
   }
