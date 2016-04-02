@@ -2,6 +2,8 @@ package sjc.delta.argonaut
 
 import argonaut.{EncodeJson, Json, JsonObject}
 import argonaut.Json.{jEmptyObject, jString}
+import sjc.delta.Delta.Aux
+import sjc.delta.std.list.patience.{Removed, Equal, Inserted, Replaced}
 import sjc.delta.{Patch, Delta}
 
 
@@ -39,7 +41,7 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
     private def op(pointer: Pointer, op: String, obj: Json) = ("op" → jString(op)) ->: ("path" → pointer.jString) ->: obj
   }
 
-  private def changes(leftJ: Json, rightJ: Json): List[(Pointer, Change)] = {
+  private def changes(leftJ: Json, rightJ: Json)(implicit deltaJ: Aux[Json, Json]): List[(Pointer, Change)] = {
     def recurse(pointer: Pointer, left: Option[Json], right: Option[Json]): List[(Pointer, Change)] = {
       if (left == right) Nil else (left, right) match {
         case (Some(JObject(leftO)), Some(JObject(rightO))) ⇒ {
@@ -48,10 +50,18 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
           })
         }
         case (Some(JArray(leftA)), Some(JArray(rightA))) ⇒ {
-          // TODO: This will become better once a Delta[List[A]] (using a 'patience diff' or otherwise) is done.
-          Range(0, leftA.length max rightA.length).toList.flatMap(index ⇒ {
-            recurse(pointer + index.toString, leftA.lift(index), rightA.lift(index))
-          })
+          sjc.delta.std.list.patience.deltaList[Json].apply(leftA, rightA) flatMap {
+            case Removed(subSeq, removed) ⇒ subSeq.leftRange.zip(removed) flatMap {
+              case (index, item) ⇒ (pointer + index).change(Some(item), None)
+            }
+            case Inserted(subSeq, inserted) ⇒ subSeq.rightRange.zip(inserted) flatMap {
+              case (index, item) ⇒ (pointer + index).change(None, Some(item))
+            }
+            case Replaced(subSeq, removed, inserted) ⇒ subSeq.leftRange.zip(removed.zip(inserted)) flatMap {
+              case (index, (rem, ins)) ⇒ recurse(pointer + index, Some(rem), Some(ins))
+            }
+            case Equal(_, _) ⇒ Nil
+          }
         }
         case _ ⇒ pointer.change(left, right)
       }
@@ -72,6 +82,7 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
   private case class Replace(leftJ: Json, rightJ: Json) extends Change
 
   private case class Pointer(elements: List[String]) { // http://tools.ietf.org/html/rfc6901
+    def +(index: Int): Pointer = this + index.toString
     def +(element: String): Pointer = copy(element :: elements)
 
     def change(leftOJ: Option[Json], rightOJ: Option[Json]): List[(Pointer, Change)] = (leftOJ, rightOJ) match {

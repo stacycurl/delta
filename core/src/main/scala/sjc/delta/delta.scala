@@ -6,6 +6,7 @@ import scala.language.implicitConversions
 trait Delta[In] {
   type Out
 
+  def tupled(lr: (In, In)): Out = apply(lr._1, lr._2)
   def apply(left: In, right: In): Out
 }
 

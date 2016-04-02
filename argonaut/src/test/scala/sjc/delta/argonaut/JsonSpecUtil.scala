@@ -70,6 +70,5 @@ trait JsonSpecUtil extends Matchers {
     """.stripMargin
   )
 
-
   private val preserveOrder = PrettyParams.spaces2.copy(preserveOrder = true)
 }

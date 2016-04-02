@@ -1,7 +1,9 @@
 package sjc.delta.argonaut
 
+import argonaut.Json
 import argonaut.Json.{jArray, jBool, jEmptyObject, jNull, jNumber, jString}
 import org.scalatest.FreeSpec
+import org.scalatest.exceptions.TestFailedException
 import sjc.delta.Delta.DeltaOps
 import sjc.delta.argonaut.json.beforeAfter.flat.{encodeJsonToDelta, jsonDelta}
 
@@ -38,6 +40,18 @@ class FlatJsonSpec extends FreeSpec with JsonSpecUtil {
     parse("""["def"]""")           delta parse("[]") jsonShouldEqual """{"/0": {"before": "def"}}"""
   }
 
+  "complex list example" in {
+    parse("""[4, 5, 6, 7, 8, 9, 10, 1000, 1001, 1002, 1003, 2000]""") delta parse("""[4, 77, 5, 6, 9, 100, 1000, 2000, 2004, 2005, 2006]""") jsonShouldEqual """{
+    |  "/1"  : {                "after" : 77   },
+    |  "/3"  : { "before" : 7                  },
+    |  "/4"  : { "before" : 8                  },
+    |  "/6"  : { "before" : 10, "after" : 100  },
+    |  "/8"  : {                "after" : 2004 },
+    |  "/9"  : {                "after" : 2005 },
+    |  "/10" : {                "after" : 2006 }
+    }""".stripMargin
+  }
+
   "complex example" in {
     complexBefore delta complexAfter jsonShouldEqual """{
     |  "/items/0/author" : {
@@ -55,6 +69,13 @@ class FlatJsonSpec extends FreeSpec with JsonSpecUtil {
     |  "/title" : {
     |    "before" : "Talk On Travel Pool",
     |    "after"  : "Talk On Travel Bar"
+    |  }
+    }""".stripMargin
+
+    parse("""[0, 2]""") delta parse("""[1, 2]""") jsonShouldEqual """{
+    |  "/0" : {
+    |    "before" : 0,
+    |    "after" : 1
     |  }
     |}""".stripMargin
   }
