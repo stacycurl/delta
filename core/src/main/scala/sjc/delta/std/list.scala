@@ -9,8 +9,8 @@ import scala.collection.{mutable ⇒ M}
 
 object list {
   object naive {
-    implicit def deltaList[A, B](
-      implicit deltaA: Delta.Aux[A, B], patchB: Patch[B]
+    implicit def deltaList[A, B, PathB](
+      implicit deltaA: Delta.Aux[A, B], patchB: Patch[B, PathB]
     ): Delta.Aux[List[A], List[Change[A, B]]] = new Delta[List[A]] {
       type Out = List[Change[A, B]]
 

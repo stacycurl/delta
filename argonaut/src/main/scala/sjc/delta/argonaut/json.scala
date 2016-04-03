@@ -1,10 +1,12 @@
 package sjc.delta.argonaut
 
-import argonaut.{EncodeJson, Json, JsonObject}
+import argonaut.{PrettyParams, EncodeJson, Json, JsonObject}
 import argonaut.Json.{jEmptyObject, jString}
 import sjc.delta.Delta.Aux
 import sjc.delta.std.list.patience.{Removed, Equal, Inserted, Replaced}
 import sjc.delta.{Patch, Delta}
+
+import scala.reflect.ClassTag
 
 
 object json extends json("left", "right", false) {
@@ -109,11 +111,15 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
 trait JsonDelta {
   implicit def encodeJsonToDelta[A: EncodeJson]: Delta.Aux[A, Json] = jsonDelta.contramap[A](EncodeJson.of[A].encode)
 
-  implicit val jsonDelta: Delta.Aux[Json, Json] with Patch[Json] = new Delta[Json] with Patch[Json] {
+  implicit val jsonDelta: Delta.Aux[Json, Json] with Patch[Json, String] = new Delta[Json] with Patch[Json, String] {
     type Out = Json
 
     def apply(left: Json, right: Json): Out = delta(left, right)
     def isEmpty(json: Json): Boolean = json == Json.jEmptyObject
+    def ignore(json: Json, paths: String*): Json = json.withObject(obj ⇒ paths.foldLeft(obj)(_ - _))
+    def pretty(json: Json): String = PrettyParams.spaces2.copy(preserveOrder = true).pretty(json)
+
+    protected val classTag: ClassTag[Json] = implicitly[ClassTag[Json]]
   }
 
   def delta(left: Json, right: Json): Json

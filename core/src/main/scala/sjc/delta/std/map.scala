@@ -20,12 +20,15 @@ object map {
 
   case class MapPatch[K, V, VOut](added: Map[K, V], removed: Map[K, V], changed: Map[K, VOut]) {
     def isEmpty = added.isEmpty && removed.isEmpty && changed.isEmpty
+    def ignore(keys: Set[K]): MapPatch[K, V, VOut] = MapPatch(added -- keys, removed -- keys, changed -- keys)
   }
 
   object MapPatch {
-    implicit def mapPatch[K, V, VOut]: Patch[MapPatch[K, V, VOut]] =
-      MapPatchInstance.asInstanceOf[Patch[MapPatch[K, V, VOut]]]
+    implicit def mapPatch[K, V, VOut]: Patch[MapPatch[K, V, VOut], K] =
+      MapPatchInstance.asInstanceOf[Patch[MapPatch[K, V, VOut], K]]
 
-    private val MapPatchInstance = Patch.create[MapPatch[Nothing, Nothing, Nothing]](_.isEmpty)
+    private val MapPatchInstance = Patch.create[MapPatch[Nothing, Nothing, Nothing], Nothing](
+      _.isEmpty, _.toString, patch ⇒ paths ⇒ patch.ignore(paths)
+    )
   }
 }

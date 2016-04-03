@@ -25,11 +25,16 @@ object either {
   case class WasRight[L, R](right: R, left: L) extends EitherPatch[L, R, Nothing, Nothing]
 
   object EitherPatch {
-    implicit def eitherPatch[L, R, LOut: Patch, ROut: Patch]: Patch[EitherPatch[L, R, LOut, ROut]] =
-      Patch.create[EitherPatch[L, R, LOut, ROut]](isEmptyFn = {
-        case BothLeft(lout)  ⇒ Patch[LOut].isEmpty(lout)
-        case BothRight(rout) ⇒ Patch[ROut].isEmpty(rout)
+    implicit def eitherPatch[L, R, LOut, ROut](
+      implicit lOut: Patch[LOut, Unit], rOut: Patch[ROut, Unit]
+    ): Patch[EitherPatch[L, R, LOut, ROut], Unit] = Patch.create[EitherPatch[L, R, LOut, ROut], Unit](
+      isEmptyFn = {
+        case BothLeft(lout)  ⇒ lOut.isEmpty(lout)
+        case BothRight(rout) ⇒ rOut.isEmpty(rout)
         case _               ⇒ false
-      })
+      },
+      prettyFn = _.toString,
+      ignoreFn = ep ⇒ _ ⇒ ep
+    )
   }
 }

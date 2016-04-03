@@ -1,6 +1,7 @@
 package sjc.delta
 
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 
 trait Delta[In] {
@@ -121,15 +122,31 @@ object Delta {
   }
 }
 
-trait Patch[P] {
+trait Patch[P, Path] {
   def nonEmpty(patch: P): Boolean = !isEmpty(patch)
   def isEmpty(patch: P): Boolean
+
+  def indent(p: P) = pretty(p).replaceAllLiterally("\n", "\n  ")
+  def pretty(p: P): String
+
+  def ignore(p: P, paths: Path*): P
+
+  def to[B, PathB](implicit patchB: Patch[B, PathB]): Patch[B, PathB] =
+    if (Patch[B, PathB].classTag.equals(classTag)) this.asInstanceOf[Patch[B, PathB]] else Patch[B, PathB]
+
+  protected val classTag: ClassTag[P]
 }
 
 object Patch {
-  def apply[P](implicit empty: Patch[P]): Patch[P] = empty
+  def apply[P, Path](implicit patch: Patch[P, Path]): Patch[P, Path] = patch
 
-  def create[P](isEmptyFn: P ⇒ Boolean): Patch[P] = new Patch[P] {
+  def create[P: ClassTag, PathP](
+    isEmptyFn: P ⇒ Boolean, prettyFn: P ⇒ String, ignoreFn: P ⇒ Set[PathP] ⇒ P
+  ): Patch[P, PathP] = new Patch[P, PathP] {
     def isEmpty(patch: P): Boolean = isEmptyFn(patch)
+    def pretty(p: P): String = prettyFn(p)
+    def ignore(p: P, paths: PathP*): P = ignoreFn(p)(paths.toSet)
+
+    protected val classTag: ClassTag[P] = implicitly[ClassTag[P]]
   }
 }

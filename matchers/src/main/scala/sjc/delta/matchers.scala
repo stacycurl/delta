@@ -3,64 +3,52 @@ package sjc.delta
 import scala.language.implicitConversions
 
 import org.scalatest.matchers.{MatchResult, Matcher}
-import scala.reflect.ClassTag
 
 
 object matchers {
-  def beDifferentTo[A, B: Patch: Pretty](expected: A)(implicit deltaA: Delta.Aux[A, B]): DeltaMatcher[A, B] =
-    new DeltaMatcher(expected, false)
+  def beDifferentTo[A, B, PathB](expected: A)(
+    implicit deltaA: Delta.Aux[A, B], patchB: Patch[B, PathB]
+  ): DeltaMatcher[A, B, PathB] = new DeltaMatcher[A, B, PathB](expected, false)
 
-  def beIdenticalTo[A, B: Patch: Pretty](expected: A)(implicit deltaA: Delta.Aux[A, B]): Matcher[A] =
-    new DeltaMatcher(expected, true)
+  def beIdenticalTo[A, B, PathB](expected: A)(
+    implicit deltaA: Delta.Aux[A, B], patchB: Patch[B, PathB]
+  ): DeltaMatcher[A, B, PathB] = new DeltaMatcher[A, B, PathB](expected, true)
 
 
-  class DeltaMatcher[A, B: Patch: Pretty](expected: A, positive: Boolean)(implicit deltaA: Delta.Aux[A, B])
-    extends Matcher[A] {
+  class DeltaMatcher[A, B, PathB](expected: A, positive: Boolean)(
+    implicit deltaA: Delta.Aux[A, B], patchB: Patch[B, PathB]
+  ) extends Matcher[A] {
 
-    private[delta] def map[C: Patch: Pretty](f: B ⇒ C): DeltaMatcher[A, C] =
-      new DeltaMatcher[A, C](expected, positive)(Patch[C], Pretty[C], deltaA.map(f))
+    def withDelta[C, PathC](expectedDelta: B)(
+      implicit deltaC: Delta.Aux[B, C], patchC: Patch[C, PathC]
+    ): DeltaMatcher[A, C, PathC] =
+      new DeltaMatcher[A, C, PathC](expected, true)(deltaA.andThen(expectedDelta), patchB.to[C, PathC])
 
-    def withDelta[C: Patch: Pretty](expectedDelta: B)(implicit deltaC: Delta.Aux[B, C]): DeltaMatcher[A, C] =
-      new DeltaMatcher[A, C](expected, true)(Patch[C], Pretty[B].to[C], deltaA.andThen(expectedDelta))
+    def ignoring(paths: PathB*): DeltaMatcher[A, B, PathB] = map(b ⇒ patchB.ignore(b, paths: _*))
 
     def apply(actual: A): MatchResult = {
       val delta = deltaA(actual, expected)
 
-      matchResult(delta, s"Detected the following differences:\n  ${Pretty[B].indent(delta)}")
+      matchResult(delta, s"Detected the following differences:\n  ${patchB.indent(delta)}")
     }
 
     private def matchResult(delta: B, positiveMsg: String) = {
-      if (positive) MatchResult(Patch[B].isEmpty(delta),  positiveMsg, "No differences detected")
-      else          MatchResult(Patch[B].nonEmpty(delta), "No differences detected", positiveMsg)
-    }
-  }
-
-  trait Pretty[A] {
-    def indent(a: A) = apply(a).replaceAllLiterally("\n", "\n  ")
-    def apply(a: A): String
-    def to[B: Pretty]: Pretty[B] = if (Pretty[B].classTag.equals(classTag)) this.asInstanceOf[Pretty[B]] else Pretty[B]
-
-    protected val classTag: ClassTag[A]
-  }
-
-  object Pretty {
-    def apply[A](implicit pretty: Pretty[A]): Pretty[A] = pretty
-
-    def create[A: ClassTag](pretty: A ⇒ String): Pretty[A] = new Pretty[A] {
-      def apply(a: A): String = pretty(a)
-      protected val classTag: ClassTag[A] = implicitly[ClassTag[A]]
+      if (positive) MatchResult(patchB.isEmpty(delta),  positiveMsg, "No differences detected")
+      else          MatchResult(patchB.nonEmpty(delta), "No differences detected", positiveMsg)
     }
 
-    implicit def toStringPretty[A: ClassTag]: Pretty[A] = create[A](_.toString)
+    private[delta] def map[C, PathC](f: B ⇒ C)(implicit patchC: Patch[C, PathC]): DeltaMatcher[A, C, PathC] =
+      new DeltaMatcher[A, C, PathC](expected, positive)(deltaA.map(f), patchC)
   }
 
   object syntax {
     import org.scalatest.Matchers._
 
-    implicit def anyDeltaMatcherOps[A, B: Patch: Pretty](actual: A)(implicit delta: Delta.Aux[A, B])
-      : AnyDeltaMatcherOps[A, B] = new AnyDeltaMatcherOps[A, B](actual)
+    implicit def anyDeltaMatcherOps[A, B, PathB](actual: A)(
+      implicit delta: Delta.Aux[A, B], patchB: Patch[B, PathB]
+    ): AnyDeltaMatcherOps[A, B, PathB] = new AnyDeltaMatcherOps[A, B, PathB](actual)
 
-    class AnyDeltaMatcherOps[A, B: Patch: Pretty](val actual: A)(implicit delta: Delta.Aux[A, B]) {
+    class AnyDeltaMatcherOps[A, B, PathB](val actual: A)(implicit delta: Delta.Aux[A, B], patchB: Patch[B, PathB]) {
       def <=>(expected: A): Unit = actual should beIdenticalTo(expected)
       def </>(expected: A): Unit = actual should beDifferentTo(expected)
     }
