@@ -6,7 +6,7 @@ import sbt._
 import Keys._
 
 object Publishing extends Sonatype(DeltaBuild) {
-  def projectUrl    = "https://github.com/stacycurl"
+  def projectUrl    = "https://github.com/stacycurl/delta"
   def developerId   = "stacycurl"
   def developerName = "Stacy Curl"
 }
