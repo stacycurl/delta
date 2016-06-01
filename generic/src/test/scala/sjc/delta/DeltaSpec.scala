@@ -6,11 +6,10 @@ import org.scalatest.{Matchers, FreeSpec}
 
 import shapeless._
 
-import sjc.delta.generic.GenericDelta.deltaPoly
-
 
 class DeltaSpec extends FreeSpec with Matchers {
   import sjc.delta.Delta._
+  import sjc.delta.generic.GenericDelta.deltaPoly
 
   "hlist" in {
     import sjc.delta.std.int._
@@ -76,3 +75,31 @@ class DeltaSpec extends FreeSpec with Matchers {
   implicit def fallbackShow[A]: Show[A] = Show.showA[A]
   */
 }
+
+
+class GenericSymbolDeltaSpec extends FreeSpec with Matchers {
+  import sjc.delta.Delta._
+  import sjc.delta.std.int._
+  import sjc.delta.generic.GenericSymbolDelta._
+
+  import record._
+  import ops.record._
+  import syntax.singleton._
+
+  "something" in {
+    val gen = LabelledGeneric[HasInt]
+
+    val keys = Keys[gen.Repr]
+
+//    println(gen.to(HasInt(123)))
+//
+//    println(keys.apply())
+
+//    println((HasInt(1): Thing) delta (HasInt(2): Thing))
+  }
+
+//  case object OtherThing extends Thing
+}
+
+sealed trait Thing
+case class HasInt(i: Int) extends Thing

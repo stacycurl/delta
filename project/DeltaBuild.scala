@@ -27,6 +27,7 @@ object DeltaBuild extends Build {
   )
 
   lazy val generic = (project configure dependantProject("generic")
+    dependsOn matchers % "test -> test"
     settings(libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2")
   )
 

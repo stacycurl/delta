@@ -52,8 +52,6 @@ class DeltaSpec extends FreeSpec with Matchers {
     val x = deltaInt.lift[Int]
 
     val y = x.apply(square, cube)
-
-    println(y(3))
   }
 
   "fallback delta test" in {

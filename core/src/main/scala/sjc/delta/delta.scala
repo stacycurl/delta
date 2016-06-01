@@ -51,9 +51,14 @@ object Delta {
   }
 
   object fallback {
-    implicit def fallbackDelta[A]: Aux[A, (A, A)] = new Delta[A] {
+    implicit def fallbackDelta[A]: Aux[A, (A, A)] with Patch[(A, A), Unit] = new Delta[A] with Patch[(A, A), Unit] {
       type Out = (A, A)
       def apply(left: A, right: A): (A, A) = (left, right)
+      def isEmpty(patch: (A, A)): Boolean = patch._1 == patch._2
+      def pretty(p: (A, A)): String = p.toString
+      def ignore(p: (A, A), paths: Unit*): (A, A) = p
+
+      protected val classTag: ClassTag[(A, A)] = implicitly[ClassTag[(A, A)]]
     }
   }
 
@@ -138,6 +143,10 @@ trait Patch[P, Path] {
 }
 
 object Patch {
+  def isEmpty[P, Path](p: P)(implicit patch: Patch[P, Path]) = patch.isEmpty(p)
+
+  def fromExample[P, Path](p: P)(implicit patch: Patch[P, Path]): Patch[P, Path] = patch
+
   def apply[P, Path](implicit patch: Patch[P, Path]): Patch[P, Path] = patch
 
   def create[P: ClassTag, PathP](
