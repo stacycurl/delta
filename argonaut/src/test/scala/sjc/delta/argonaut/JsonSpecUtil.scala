@@ -11,7 +11,10 @@ trait JsonSpecUtil extends Matchers {
     def jsonShouldEqual(expected: Json): Unit = preserveOrder.pretty(json) shouldBe preserveOrder.pretty(expected)
   }
 
-  def parse(content: String): Json = Parse.parse(content).valueOr(error ⇒ sys.error("not json: " + error))
+  def parse(content: String): Json = Parse.parse(content) match {
+    case Left(error) ⇒ sys.error("not json: " + error)
+    case Right(json) ⇒ json
+  }
 
   case class Person(age: Int, name: String, pet: Dog)
   case class Dog(age: Int, name: String)

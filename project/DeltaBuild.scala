@@ -22,7 +22,7 @@ object DeltaBuild extends Build {
   )
 
   lazy val scalaz = (project configure dependantProject("scalaz")
-    settings(libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.2.1")
+    settings(libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.2.2")
     settings addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.7.1")
   )
 
@@ -31,7 +31,7 @@ object DeltaBuild extends Build {
   )
 
   lazy val argonaut = (project configure dependantProject("argonaut")
-    settings(libraryDependencies += "io.argonaut" %% "argonaut" % "6.1")
+    settings(libraryDependencies += "io.argonaut" %% "argonaut" % "6.2-M2")
   )
 
   lazy val matchers = (project configure dependantProject("matchers")
