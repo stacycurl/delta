@@ -3,14 +3,14 @@ language: scala
 sudo: false
 
 scala:
-- 2.11.7
+- 2.12.0
 
 cache:
   directories:
   - $HOME/.ivy2/cache
 
 jdk:
-- openjdk6
+- oraclejdk8
 
 before_script: ./project/bintray.sh
 
