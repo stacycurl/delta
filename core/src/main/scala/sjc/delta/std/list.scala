@@ -1,10 +1,11 @@
 package sjc.delta.std
 
-import sjc.delta.{Patch, Delta}
+import sjc.delta.{Delta, Patch}
 import sjc.delta.util.DeltaListOps
 
 import scala.annotation.tailrec
 import scala.collection.{mutable ⇒ M}
+import scala.util.Random
 
 
 object list {
@@ -50,36 +51,48 @@ object list {
     case class Replaced[A](subSeq: SubSeq, removed: List[A], inserted: List[A]) extends Change[A]
     case class Removed[A](subSeq: SubSeq, removed: List[A])                     extends Change[A]
 
-    case class SubSeq(leftIndex: Int, rightIndex: Int, leftLength: Int, rightLength: Int) {
-      def this(leftIndex: Int, rightIndex: Int, commonLength: Int) =
-        this(leftIndex, rightIndex, commonLength, commonLength)
-
-      def adjoins(other: SubSeq): Boolean = afterLeft == other.leftIndex && afterRight == other.rightIndex
-
-      def adjoin(other: SubSeq): SubSeq =
-        SubSeq(leftIndex, rightIndex, leftLength + other.leftLength, rightLength + other.rightLength)
-
-      def leftRange  = Range(leftIndex,  afterLeft)
-      def rightRange = Range(rightIndex, afterRight)
-
-      def afterLeft  = leftIndex  + leftLength
-      def afterRight = rightIndex + rightLength
-
-      override def toString: String = s"$leftIndex, $rightIndex, $leftLength, $rightLength"
+    object SubSeq {
+      def apply(leftIndex: Int, rightIndex: Int, leftLength: Int, rightLength: Int) =
+        new SubSeq(Span(leftIndex, leftLength), Span(rightIndex, rightLength))
     }
 
+    case class SubSeq(left: Span, right: Span) {
+      def this(leftIndex: Int, rightIndex: Int, commonLength: Int) =
+        this(Span(leftIndex, commonLength), Span(rightIndex, commonLength))
+
+      def adjoins(other: SubSeq): Boolean = left.adjoins(other.left) && right.adjoins(other.right)
+      def extend(other: SubSeq): SubSeq = SubSeq(left.extend(other.left), right.extend(other.right))
+
+      override def toString: String = s"${left.from}, ${right.from}, ${left.length}, ${right.length}"
+    }
+
+    object Span {
+      val zero = Span(0, 0)
+    }
+
+    case class Span(from: Int, length: Int) {
+      def adjoins(other: Span): Boolean = to == other.from
+      def extend(other: Span) = Span(from, length + other.length)
+
+      def zip[A](rhs: Iterable[A]): Seq[(Int, A)] = Range(from, to).zip(rhs)
+      def slice[A](list: List[A]): List[A] = list.slice(from, to)
+
+      def to: Int = from + length
+
+      def previous(newFrom: Int): Span = Span(newFrom, from - newFrom)
+    }
 
     class ListDelta[A] extends Delta[List[A]] {
       type Out = List[Change[A]]
 
-      def apply(left: List[A], right: List[A]): Out = untypedDifferences(left, right).map(_.typed(left, right))
+      def apply(left: List[A], right: List[A]): Out = untypedChanges(left, right).map(_.typed(left, right))
 
-      def untypedDifferences(left: List[A], right: List[A]): List[UntypedChange] = {
-        val matches = matchingSequences(left.toVector, right.toVector)
+      private def untypedChanges(left: List[A], right: List[A]): List[UntypedChange] = {
+        val matches: List[SubSeq] = matchingSequences(left.toVector, right.toVector)
 
         val (result, _, _) = matches.foldLeft((List.empty[UntypedChange], 0, 0)) {
           case ((acc, leftIndex, rightIndex), head) ⇒
-            (equal(head) ?:: insert(head, rightIndex) ?:: remove(head, leftIndex) ?:: acc, head.afterLeft, head.afterRight)
+            (equal(head) ?:: insert(head, rightIndex) ?:: remove(head, leftIndex) ?:: acc, head.left.to, head.right.to)
         }
 
         UntypedChange.merge(result.reverse)
@@ -87,36 +100,37 @@ object list {
 
       private def remove(subSeq: SubSeq, lastLeftIndex: Int): Option[UntypedChange] = {
         if (lastLeftIndex == -1) {
-          if (subSeq.leftIndex <= 0 || subSeq.rightIndex != 0) None else {
-            Some(UntypedRemoved(SubSeq(0, 0, subSeq.leftLength, 0)))
+          if (subSeq.left.from <= 0 || subSeq.right.from != 0) None else {
+            Some(UntypedRemoved(SubSeq(subSeq.left.copy(from = 0), Span.zero)))
           }
         } else {
-          if (subSeq.leftIndex <= lastLeftIndex) None else {
-            Some(UntypedRemoved(SubSeq(lastLeftIndex, 0, subSeq.leftIndex - lastLeftIndex, 0)))
+          if (subSeq.left.from <= lastLeftIndex) None else {
+            Some(UntypedRemoved(SubSeq(subSeq.left.previous(lastLeftIndex), Span.zero)))
           }
         }
       }
 
       def insert(subSeq: SubSeq, lastRightIndex: Int): Option[UntypedChange] = {
         if (lastRightIndex == -1) {
-          if (subSeq.rightIndex <= 0 || subSeq.leftIndex != 0) None else {
-            Some(UntypedInserted(SubSeq(0, 0, 0, subSeq.rightIndex)))
+          if (subSeq.right.from <= 0 || subSeq.left.from != 0) None else {
+            Some(UntypedInserted(SubSeq(Span.zero, Span(0, subSeq.right.from))))
           }
         } else {
-          if (subSeq.rightIndex <= lastRightIndex) None else {
-            Some(UntypedInserted(SubSeq(0, lastRightIndex, 0, subSeq.rightIndex - lastRightIndex)))
+          if (subSeq.right.from <= lastRightIndex) None else {
+            Some(UntypedInserted(SubSeq(Span.zero, subSeq.right.previous(lastRightIndex))))
           }
         }
       }
 
       def equal(subSeq: SubSeq): Option[UntypedChange] =
-        if (subSeq.leftLength <= 0 || subSeq.leftLength != subSeq.rightLength) None else Some(UntypedEqual(subSeq))
+        if (subSeq.left.length <= 0 || subSeq.left.length != subSeq.right.length) None else Some(UntypedEqual(subSeq))
 
       // This method uses a lot of random access, so using Vector.
       def matchingSequences(left: Vector[A], right: Vector[A]): List[SubSeq] = {
+        val (leftIndexed, rightIndexed) = (left.zipWithIndex, right.zipWithIndex)
         def recurse(lowL: Int, lowR: Int, highL: Int, highR: Int, maxDepth: Int): List[(Int, Int)] = {
           if (maxDepth < 0 || lowL >= highL || lowR >= highR) Nil else {
-            val uniqueLCSs = uniqueLongestCommonSubSequences(left.slice(lowL, highL), right.slice(lowR, highR))
+            val uniqueLCSs = uniqueLongestCommonSubSequences(Slice(leftIndexed, lowL, highL), Slice(rightIndexed, lowR, highR))
 
             val ((lastPosL, lastPosR), initialResult) = uniqueLCSs.foldLeft(((lowL - 1, lowR - 1), List[(Int, Int)]())) {
               case (((lastLPos, lastRPos), accMatches), (lIndex, rIndex)) ⇒ {
@@ -176,19 +190,29 @@ object list {
         (new SubSeq(leftLength, rightLength, 0) :: recurse(-1, -1, 0, Nil, list)).reverse
       }
 
-      def uniqueLongestCommonSubSequences(left: Vector[A], right: Vector[A]): List[(Int, Int)] = {
+      private case class Slice[B](original: Vector[(B, Int)], from: Int, to: Int) {
+        def array: Array[Int] = Array.ofDim[Int](to - from)
+
+        def indexedForEach[Discarded](f: ((B, Int)) ⇒ Discarded): Unit = {
+          original.slice(from, to).foreach {
+            case (b, index) ⇒ f((b, index - from))
+          }
+        }
+      }
+
+      private def uniqueLongestCommonSubSequences(left: Slice[A], right: Slice[A]): List[(Int, Int)] = {
         val index1 = M.Map[A, Int]()
         val index2 = M.Map[A, Int]()
-        val ltor = Array.ofDim[Int](left.length)
-        val rtol = Array.ofDim[Int](right.length)
+        val ltor = left.array
+        val rtol = right.array
 
-        left.zipWithIndex.foreach {
+        left.indexedForEach {
           case (lhs, index) ⇒ {
-            if (index1.contains(lhs)) index1 += (lhs → -1) else index1 += (lhs → index)
+            index1 += (if (index1.contains(lhs)) lhs → -1 else lhs → index)
           }
         }
 
-        right.zipWithIndex.foreach {
+        right.indexedForEach {
           case (rhs, i) ⇒ {
             rtol(i) = -1
 
@@ -255,18 +279,14 @@ object list {
       object UntypedChange {
         def merge(changes: List[UntypedChange]): List[UntypedChange] = {
           val (remaining, result) = changes.foldLeft((None: Option[UntypedChange], List.empty[UntypedChange])) {
-            case ((Some(UntypedRemoved(SubSeq(leftIndex, _,  leftLength, _))), accChanges),
-            UntypedInserted(SubSeq(_, rightIndex, _, rightLength))) if leftLength == rightLength ⇒ {
-              (None, UntypedReplaced(SubSeq(leftIndex, rightIndex, leftLength, rightLength)) :: accChanges)
+            case ((Some(UntypedRemoved(SubSeq(left, _))), accChanges), UntypedInserted(SubSeq(_, right))) if left.length == right.length ⇒ {
+              (None, UntypedReplaced(SubSeq(left, right)) :: accChanges)
             }
-            case ((Some(UntypedInserted(SubSeq(_, rightIndex, _, rightLength))), accInstructions),
-            UntypedRemoved(SubSeq(leftIndex, _, leftLength, _))) if leftLength == rightLength ⇒ {
-              (None, UntypedReplaced(SubSeq(leftIndex, rightIndex, leftLength, rightLength)) :: accInstructions)
+            case ((Some(UntypedInserted(SubSeq(_, right))), accInstructions), UntypedRemoved(SubSeq(left, _))) if left.length == right.length ⇒ {
+              (None, UntypedReplaced(SubSeq(left, right)) :: accInstructions)
             }
             case ((Some(left: UntypedEqual), accInstructions), right: UntypedEqual) if left.adjoins(right) ⇒ {
-              val joined = left.adjoin(right)
-
-              (Some(joined), accInstructions)
+              (Some(left.extend(right)), accInstructions)
             }
             case ((Some(prev), accInstructions), instruction) ⇒ (Some(instruction), prev :: accInstructions)
             case ((None, accInstructions), instruction)       ⇒ (Some(instruction), accInstructions)
@@ -282,30 +302,26 @@ object list {
 
       case class UntypedEqual(subSequence: SubSeq) extends UntypedChange {
         def adjoins(other: UntypedEqual): Boolean = subSequence.adjoins(other.subSequence)
-        def adjoin(other: UntypedEqual): UntypedEqual = UntypedEqual(subSequence.adjoin(other.subSequence))
+        def extend(other: UntypedEqual): UntypedEqual = UntypedEqual(subSequence.extend(other.subSequence))
 
-        def typed(left: List[A], right: List[A]): Change[A] = Equal(subSequence, subSequence.leftRange.slice(left))
+        def typed(left: List[A], right: List[A]): Change[A] = Equal(subSequence, subSequence.left.slice(left))
       }
 
       case class UntypedInserted(subSequence: SubSeq) extends UntypedChange {
-        def typed(left: List[A], right: List[A]): Change[A] = Inserted(subSequence, subSequence.rightRange.slice(right))
+        def typed(left: List[A], right: List[A]): Change[A] = Inserted(subSequence, subSequence.right.slice(right))
       }
 
       case class UntypedReplaced(subSequence: SubSeq) extends UntypedChange {
         def typed(left: List[A], right: List[A]): Change[A] =
-          Replaced(subSequence, subSequence.leftRange.slice(left), subSequence.rightRange.slice(right))
+          Replaced(subSequence, subSequence.left.slice(left), subSequence.right.slice(right))
       }
 
       case class UntypedRemoved(subSequence: SubSeq) extends UntypedChange {
-        def typed(left: List[A], right: List[A]): Change[A] = Removed(subSequence, subSequence.leftRange.slice(left))
+        def typed(left: List[A], right: List[A]): Change[A] = Removed(subSequence, subSequence.left.slice(left))
       }
 
       private implicit class DeltaListOps[B](list: List[B]) {
         def ?::(oa: Option[B]): List[B] = oa.fold(list)(_ :: list)
-      }
-
-      private implicit class RangeOps(range: Range) {
-        def slice(list: List[A]): List[A] = list.slice(range.start, range.end)
       }
     }
   }

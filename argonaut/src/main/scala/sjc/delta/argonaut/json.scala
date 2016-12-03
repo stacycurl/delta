@@ -53,13 +53,13 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean, incl
         }
         case (Some(JArray(leftA)), Some(JArray(rightA))) ⇒ {
           sjc.delta.std.list.patience.deltaList[Json].apply(leftA, rightA) flatMap {
-            case Removed(subSeq, removed) ⇒ subSeq.leftRange.zip(removed) flatMap {
+            case Removed(subSeq, removed) ⇒ subSeq.left.zip(removed) flatMap {
               case (index, item) ⇒ (pointer + index).change(Some(item), None)
             }
-            case Inserted(subSeq, inserted) ⇒ subSeq.rightRange.zip(inserted) flatMap {
+            case Inserted(subSeq, inserted) ⇒ subSeq.right.zip(inserted) flatMap {
               case (index, item) ⇒ (pointer + index).change(None, Some(item))
             }
-            case Replaced(subSeq, removed, inserted) ⇒ subSeq.leftRange.zip(removed.zip(inserted)) flatMap {
+            case Replaced(subSeq, removed, inserted) ⇒ subSeq.left.zip(removed.zip(inserted)) flatMap {
               case (index, (rem, ins)) ⇒ recurse(pointer + index, Some(rem), Some(ins))
             }
             case Equal(_, _) ⇒ Nil
