@@ -31,24 +31,24 @@ class FlatJsonSpec extends FreeSpec with JsonSpecUtil {
   }
 
   "should list missing elements" in {
-    parse("{}") delta parse("""{"parent": "def"}""") jsonShouldEqual """{"/parent": {"after": "def"}}"""
-    parse("[]") delta parse("""["def"]""")           jsonShouldEqual """{"/0": {"after": "def"}}"""
+    parse("{}") delta parse("""{"parent": "def"}""") jsonShouldEqual s"""{"/parent": {$beforeMissing, "after": "def"}}"""
+    parse("[]") delta parse("""["def"]""")           jsonShouldEqual s"""{"/0": {$beforeMissing, "after": "def"}}"""
   }
 
   "should list extra elements" in {
-    parse("""{"parent": "def"}""") delta parse("{}") jsonShouldEqual """{"/parent": {"before": "def"}}"""
-    parse("""["def"]""")           delta parse("[]") jsonShouldEqual """{"/0": {"before": "def"}}"""
+    parse("""{"parent": "def"}""") delta parse("{}") jsonShouldEqual s"""{"/parent": {"before": "def", $afterMissing}}"""
+    parse("""["def"]""")           delta parse("[]") jsonShouldEqual s"""{"/0": {"before": "def", $afterMissing}}"""
   }
 
   "complex list example" in {
-    parse("""[4, 5, 6, 7, 8, 9, 10, 1000, 1001, 1002, 1003, 2000]""") delta parse("""[4, 77, 5, 6, 9, 100, 1000, 2000, 2004, 2005, 2006]""") jsonShouldEqual """{
-    |  "/1"  : {                "after" : 77   },
-    |  "/3"  : { "before" : 7                  },
-    |  "/4"  : { "before" : 8                  },
-    |  "/6"  : { "before" : 10, "after" : 100  },
-    |  "/8"  : {                "after" : 2004 },
-    |  "/9"  : {                "after" : 2005 },
-    |  "/10" : {                "after" : 2006 }
+    parse("""[4, 5, 6, 7, 8, 9, 10, 1000, 1001, 1002, 1003, 2000]""") delta parse("""[4, 77, 5, 6, 9, 100, 1000, 2000, 2004, 2005, 2006]""") jsonShouldEqual s"""{
+    |  "/1"  : { $beforeMissing, "after" : 77   },
+    |  "/3"  : { "before" : 7,   $afterMissing  },
+    |  "/4"  : { "before" : 8,   $afterMissing  },
+    |  "/6"  : { "before" : 10,  "after" : 100  },
+    |  "/8"  : { $beforeMissing, "after" : 2004 },
+    |  "/9"  : { $beforeMissing, "after" : 2005 },
+    |  "/10" : { $beforeMissing, "after" : 2006 }
     }""".stripMargin
   }
 
@@ -88,4 +88,7 @@ class FlatJsonSpec extends FreeSpec with JsonSpecUtil {
     |  "/pet/name": { "before": "fido", "after" : "rover" }
     |}""".stripMargin
   }
+
+  private val beforeMissing = """"before-missing": true"""
+  private val afterMissing  = """"after-missing": true"""
 }

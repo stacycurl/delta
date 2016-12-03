@@ -7,12 +7,14 @@ import sjc.delta.std.list.patience.{Removed, Equal, Inserted, Replaced}
 import sjc.delta.{Patch, Delta}
 
 
-object json extends json("left", "right", false) {
-  object beforeAfter    extends json("before", "after", false)
-  object actualExpected extends json("actual", "expected", false)
+object json extends json("left", "right", false, true) {
+  object beforeAfter    extends json("before", "after", false, true)
+  object actualExpected extends json("actual", "expected", false, true)
+
+  def excludeMissing: json = copy(includeMissing = false)
 }
 
-case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { json ⇒
+case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean, includeMissing: Boolean) { json ⇒
   object flat extends JsonDelta {
     def delta(left: Json, right: Json): Json = Json.jObjectFields(
       changes(left, right).map { case (pointer, change) ⇒ pointer.asString → flatten(change) }: _*
@@ -71,10 +73,13 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
   }
 
   private def flatten(change: Change): Json = change match {
-    case Add(right)           ⇒                       (rhsName → right) ->: jEmptyObject
-    case Remove(left)         ⇒ (lhsName → left)                        ->: jEmptyObject
-    case Replace(left, right) ⇒ (lhsName → left)  ->: (rhsName → right) ->: jEmptyObject
+    case Add(right)           ⇒ lhsMissing        ->?: (rhsName → right) ->:  jEmptyObject
+    case Remove(left)         ⇒ (lhsName → left)  ->:  rhsMissing        ->?: jEmptyObject
+    case Replace(left, right) ⇒ (lhsName → left)  ->:  (rhsName → right) ->:  jEmptyObject
   }
+
+  private val lhsMissing = if (includeMissing) Some(s"$lhsName-missing" → Json.jTrue) else None
+  private val rhsMissing = if (includeMissing) Some(s"$rhsName-missing" → Json.jTrue) else None
 
   private sealed trait Change
   private case class Add(rightJ: Json)                  extends Change
