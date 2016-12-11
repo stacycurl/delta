@@ -1,10 +1,12 @@
 package sjc.delta.argonaut
 
+import argonaut.{Json, JsonObject}
+import argonaut.StringWrap.StringToStringWrap
 import argonaut.Json.jString
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{FreeSpec, Matchers}
-import sjc.delta.argonaut.matchers.{beDifferentTo, beIdenticalTo, prettyJson}
-import sjc.delta.argonaut.json.actualExpected.flat.{jsonDelta, encodeJsonToDelta}
+import sjc.delta.argonaut.matchers.{beConsistentWith, beDifferentTo, beIdenticalTo, prettyJson}
+import sjc.delta.argonaut.json.actualExpected.flat.{encodeJsonToDelta, jsonDelta}
 import sjc.delta.matchers.syntax.anyDeltaMatcherOps
 
 
@@ -102,6 +104,36 @@ class JsonMatchersSpec extends FreeSpec with Matchers with JsonSpecUtil {
       intercept[TestFailedException] {
         jString("def") should not(beIdenticalTo(jString("def")))
       }.message shouldBe Some("No differences detected")
+    }
+
+    "beConsistentWith" in {
+      jString("def") should beConsistentWith(jString("def"))
+
+      obj("a" := obj("ab" := 123)) should beConsistentWith(obj("a" := obj("ab" := 123), "b" := 123))
+
+      intercept[TestFailedException] {
+        jString("def") should beConsistentWith(jString("abc"))
+      }.message shouldBe Some(
+        """Detected the following inconsistencies:
+          |  {
+          |    "" : {
+          |      "actual" : "def",
+          |      "expected" : "abc"
+          |    }
+          |  }""".stripMargin
+      )
+
+      intercept[TestFailedException] {
+        obj("a" := obj("ab" := 456)) should beConsistentWith(obj("a" := obj("ab" := 123), "b" := 123))
+      }.message shouldBe Some(
+        """Detected the following inconsistencies:
+          |  {
+          |    "/a/ab" : {
+          |      "actual" : 456,
+          |      "expected" : 123
+          |    }
+          |  }""".stripMargin
+      )
     }
   }
 
@@ -202,6 +234,8 @@ class JsonMatchersSpec extends FreeSpec with Matchers with JsonSpecUtil {
       }.message shouldBe Some("No differences detected")
     }
   }
+
+  private def obj(socks: Json.JsonAssoc*): Json = Json.jObject(JsonObject.fromTraversableOnce(socks))
 
   private val bob = Person(11, "bob", Dog(1, "fido"))
   private val sue = Person(22, "sue", Dog(2, "fifi"))
