@@ -73,10 +73,12 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
   }
 
   private def flatten(change: Change): Json = change match {
-    case Add(right)           ⇒                       (rhsName → right) ->: jEmptyObject
-    case Remove(left)         ⇒ (lhsName → left)                        ->: jEmptyObject
+    case Add(right)           ⇒ missing(lhsName)  ->: (rhsName → right) ->: jEmptyObject
+    case Remove(left)         ⇒ (lhsName → left)  ->: missing(rhsName)  ->: jEmptyObject
     case Replace(left, right) ⇒ (lhsName → left)  ->: (rhsName → right) ->: jEmptyObject
   }
+
+  private def missing(name: String) = s"$name-missing" → Json.jTrue
 
   private sealed trait Change
   private case class Add(rightJ: Json)                  extends Change

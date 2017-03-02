@@ -31,24 +31,24 @@ class FlatJsonSpec extends FreeSpec with JsonSpecUtil {
   }
 
   "should list missing elements" in {
-    parse("{}") delta parse("""{"parent": "def"}""") jsonShouldEqual """{"/parent": {"after": "def"}}"""
-    parse("[]") delta parse("""["def"]""")           jsonShouldEqual """{"/0": {"after": "def"}}"""
+    parse("{}") delta parse("""{"parent": "def"}""") jsonShouldEqual """{"/parent": {"before-missing": true, "after": "def"}}"""
+    parse("[]") delta parse("""["def"]""")           jsonShouldEqual """{"/0": {"before-missing": true, "after": "def"}}"""
   }
 
   "should list extra elements" in {
-    parse("""{"parent": "def"}""") delta parse("{}") jsonShouldEqual """{"/parent": {"before": "def"}}"""
-    parse("""["def"]""")           delta parse("[]") jsonShouldEqual """{"/0": {"before": "def"}}"""
+    parse("""{"parent": "def"}""") delta parse("{}") jsonShouldEqual """{"/parent": {"before": "def", "after-missing": true}}"""
+    parse("""["def"]""")           delta parse("[]") jsonShouldEqual """{"/0": {"before": "def", "after-missing": true}}"""
   }
 
   "complex list example" in {
     parse("""[4, 5, 6, 7, 8, 9, 10, 1000, 1001, 1002, 1003, 2000]""") delta parse("""[4, 77, 5, 6, 9, 100, 1000, 2000, 2004, 2005, 2006]""") jsonShouldEqual """{
-    |  "/1"  : {                "after" : 77   },
-    |  "/3"  : { "before" : 7                  },
-    |  "/4"  : { "before" : 8                  },
-    |  "/6"  : { "before" : 10, "after" : 100  },
-    |  "/8"  : {                "after" : 2004 },
-    |  "/9"  : {                "after" : 2005 },
-    |  "/10" : {                "after" : 2006 }
+    |  "/1"  : { "before-missing": true, "after" : 77          },
+    |  "/3"  : { "before" : 7,           "after-missing": true },
+    |  "/4"  : { "before" : 8,           "after-missing": true },
+    |  "/6"  : { "before" : 10,          "after" : 100         },
+    |  "/8"  : { "before-missing": true, "after" : 2004        },
+    |  "/9"  : { "before-missing": true, "after" : 2005        },
+    |  "/10" : { "before-missing": true, "after" : 2006        }
     }""".stripMargin
   }
 
