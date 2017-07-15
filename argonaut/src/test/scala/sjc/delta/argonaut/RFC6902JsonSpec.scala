@@ -23,6 +23,12 @@ class RFC6902JsonSpec extends FreeSpec with JsonSpecUtil {
     |  { "op": "replace", "path": "/link",              "value": "http://www.flickr.com/groups/talkontravel/bar/" },
     |  { "op": "replace", "path": "/title",             "value": "Talk On Travel Bar"                             }
     |]""".stripMargin
+
+    parse("""[1, 2]""") delta parse("""[0, 1, 2]""") jsonShouldEqual """[
+    |  {
+    |    "op" : "add", "path" : "/0", "value" : 0
+    |  }
+    |]""".stripMargin
   }
 
   "generic delta" in {

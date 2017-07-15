@@ -1,9 +1,7 @@
 package sjc.delta.argonaut
 
-import argonaut.Json
 import argonaut.Json.{jArray, jBool, jEmptyObject, jNull, jNumber, jString}
 import org.scalatest.FreeSpec
-import org.scalatest.exceptions.TestFailedException
 import sjc.delta.Delta.DeltaOps
 import sjc.delta.argonaut.json.beforeAfter.flat.{encodeJsonToDelta, jsonDelta}
 
@@ -41,14 +39,16 @@ class FlatJsonSpec extends FreeSpec with JsonSpecUtil {
   }
 
   "complex list example" in {
+    println((parse("""[4, 5, 6, 7, 8, 9, 10, 1000, 1001, 1002, 1003, 2000]""") delta parse("""[4, 77, 5, 6, 9, 100, 1000, 2000, 2004, 2005, 2006]""")).spaces2)
+
     parse("""[4, 5, 6, 7, 8, 9, 10, 1000, 1001, 1002, 1003, 2000]""") delta parse("""[4, 77, 5, 6, 9, 100, 1000, 2000, 2004, 2005, 2006]""") jsonShouldEqual s"""{
-    |  "/1"  : { $beforeMissing, "after" : 77   },
-    |  "/3"  : { "before" : 7,   $afterMissing  },
-    |  "/4"  : { "before" : 8,   $afterMissing  },
-    |  "/6"  : { "before" : 10,  "after" : 100  },
-    |  "/8"  : { $beforeMissing, "after" : 2004 },
-    |  "/9"  : { $beforeMissing, "after" : 2005 },
-    |  "/10" : { $beforeMissing, "after" : 2006 }
+    |  "/[1]"  : { "added" : 77  },
+    |  "/[3]"  : { "removed" : 7 },
+    |  "/[4]"  : { "removed" : 8 },
+    |  "/[6]"  : { "before" : 10,  "after" : 100  },
+    |  "/[8]"  : { "added" : 2004 },
+    |  "/[9]"  : { "added" : 2005 },
+    |  "/[10]" : { "added" : 2006 }
     }""".stripMargin
   }
 
@@ -73,9 +73,15 @@ class FlatJsonSpec extends FreeSpec with JsonSpecUtil {
     }""".stripMargin
 
     parse("""[0, 2]""") delta parse("""[1, 2]""") jsonShouldEqual """{
-    |  "/0" : {
+    |  "/[0]" : {
     |    "before" : 0,
     |    "after" : 1
+    |  }
+    |}""".stripMargin
+
+    parse("""[1, 2]""") delta parse("""[0, 1, 2]""") jsonShouldEqual """{
+    |  "/[0]": {
+    |    "added": 0
     |  }
     |}""".stripMargin
   }

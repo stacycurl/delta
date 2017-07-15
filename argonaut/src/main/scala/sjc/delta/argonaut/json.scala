@@ -15,15 +15,17 @@ object json extends json("left", "right", false, true) {
 }
 
 case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean, includeMissing: Boolean) { json ⇒
-  object flat extends JsonDelta {
+  private val flattener = Flattener.Simple(lhsName, rhsName, includeMissing) // TODO: Make this configurable
+
+  object flat extends JsonDelta { // TODO: Probably make these JsonDelta instances into vals
     def delta(left: Json, right: Json): Json = Json.jObjectFields(
-      changes(left, right).map { case (pointer, change) ⇒ pointer.asString → flatten(change) }: _*
+      changes(left, right).map { case (pointer, change) ⇒ pointer.asString → flattener.flatten(change) }: _*
     )
   }
 
   object compressed extends JsonDelta {
     def delta(left: Json, right: Json): Json = changes(left, right).foldLeft(jEmptyObject) {
-      case (acc, (Pointer(path), change)) ⇒ add(acc, path, flatten(change))
+      case (acc, (Pointer(path), change)) ⇒ add(acc, path, flattener.flatten(change))
     }
 
     private def add(json: Json, path: List[String], value: Json): Json = path match { // TODO: make tail recursive
@@ -35,9 +37,9 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean, incl
 
   object rfc6902 extends JsonDelta {
     def delta(left: Json, right: Json): Json = Json.jArrayElements(changes(left, right) map { // TODO: Add 'move' & 'copy'
-      case (pointer, Add(rightJ))        ⇒ op(pointer, "add",     ("value" → rightJ) ->: jEmptyObject)
-      case (pointer, Remove(leftJ))      ⇒ op(pointer, "remove",                         jEmptyObject)
-      case (pointer, Replace(_, rightJ)) ⇒ op(pointer, "replace", ("value" → rightJ) ->: jEmptyObject)
+      case (pointer, Change.Add(rightJ))        ⇒ op(pointer, "add",     ("value" → rightJ) ->: jEmptyObject)
+      case (pointer, Change.Remove(leftJ))      ⇒ op(pointer, "remove",                         jEmptyObject)
+      case (pointer, Change.Replace(_, rightJ)) ⇒ op(pointer, "replace", ("value" → rightJ) ->: jEmptyObject)
     }: _*)
 
     private def op(pointer: Pointer, op: String, obj: Json) = ("op" → jString(op)) ->: ("path" → pointer.jString) ->: obj
@@ -51,7 +53,7 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean, incl
             recurse(pointer + field, leftO.apply(field), rightO.apply(field))
           })
         }
-        case (Some(JArray(leftA)), Some(JArray(rightA))) ⇒ {
+        case (Some(JArray(leftA)), Some(JArray(rightA))) ⇒ { // TODO: make this configurable (should be able to use a naive list delta if you want
           sjc.delta.std.list.patience.deltaList[Json].apply(leftA, rightA) flatMap {
             case Removed(subSeq, removed) ⇒ subSeq.left.zip(removed) flatMap {
               case (index, item) ⇒ (pointer + index).change(Some(item), None)
@@ -72,29 +74,15 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean, incl
     recurse(Pointer(Nil), Some(leftJ), Some(rightJ))
   }
 
-  private def flatten(change: Change): Json = change match {
-    case Add(right)           ⇒ lhsMissing        ->?: (rhsName → right) ->:  jEmptyObject
-    case Remove(left)         ⇒ (lhsName → left)  ->:  rhsMissing        ->?: jEmptyObject
-    case Replace(left, right) ⇒ (lhsName → left)  ->:  (rhsName → right) ->:  jEmptyObject
-  }
-
-  private val lhsMissing = if (includeMissing) Some(s"$lhsName-missing" → Json.jTrue) else None
-  private val rhsMissing = if (includeMissing) Some(s"$rhsName-missing" → Json.jTrue) else None
-
-  private sealed trait Change
-  private case class Add(rightJ: Json)                  extends Change
-  private case class Remove(leftJ: Json)                extends Change
-  private case class Replace(leftJ: Json, rightJ: Json) extends Change
-
   private case class Pointer(elements: List[String]) { // http://tools.ietf.org/html/rfc6901
     def +(index: Int): Pointer = this + index.toString
     def +(element: String): Pointer = copy(element :: elements)
 
     def change(leftOJ: Option[Json], rightOJ: Option[Json]): List[(Pointer, Change)] = (leftOJ, rightOJ) match {
       case (None,                None) ⇒ Nil
-      case (Some(leftJ),         None) ⇒ List(reverse → Remove(leftJ))
-      case (None,        Some(rightJ)) ⇒ List(reverse → Add(rightJ))
-      case (Some(leftJ), Some(rightJ)) ⇒ List(reverse → Replace(leftJ, rightJ))
+      case (Some(leftJ),         None) ⇒ List(reverse → Change.Remove(leftJ))
+      case (None,        Some(rightJ)) ⇒ List(reverse → Change.Add(rightJ))
+      case (Some(leftJ), Some(rightJ)) ⇒ List(reverse → Change.Replace(leftJ, rightJ))
     }
 
     def jString: Json = Json.jString(asString)
@@ -122,4 +110,29 @@ trait JsonDelta {
   }
 
   def delta(left: Json, right: Json): Json
+}
+
+sealed trait Change
+
+object Change {
+  case class Add(rightJ: Json)                  extends Change
+  case class Remove(leftJ: Json)                extends Change
+  case class Replace(leftJ: Json, rightJ: Json) extends Change
+}
+
+trait Flattener {
+  def apply(change: Change): Json
+}
+
+object Flattener {
+  case class Simple(lhsName: String, rhsName: String, includeMissing: Boolean) extends Flattener {
+    def flatten(change: Change): Json = change match {
+      case Change.Add(right)           ⇒ lhsMissing        ->?: (rhsName → right) ->:  jEmptyObject
+      case Change.Remove(left)         ⇒ (lhsName → left)  ->:  rhsMissing        ->?: jEmptyObject
+      case Change.Replace(left, right) ⇒ (lhsName → left)  ->:  (rhsName → right) ->:  jEmptyObject
+    }
+
+    private val lhsMissing = if (includeMissing) Some(s"$lhsName-missing" → Json.jTrue) else None
+    private val rhsMissing = if (includeMissing) Some(s"$rhsName-missing" → Json.jTrue) else None
+  }
 }

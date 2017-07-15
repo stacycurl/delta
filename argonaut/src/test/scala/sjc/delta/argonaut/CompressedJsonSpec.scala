@@ -29,6 +29,13 @@ class CompressedJsonSpec extends FreeSpec with JsonSpecUtil {
     |    "after" : "Talk On Travel Bar"
     |  }
     |}""".stripMargin
+
+    parse("""[1, 2]""") delta parse("""[0, 1, 2]""") jsonShouldEqual """{
+    |  "0" : {
+    |    "before-missing" : true,
+    |    "after" : 0
+    |  }
+    |}""".stripMargin
   }
 
   "generic delta" in {
