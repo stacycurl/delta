@@ -1,4 +1,0 @@
-realm = Bintray API Realm
-host = api.bintray.com
-user = stacycurl
-password = $BINTRAY_API_KEY

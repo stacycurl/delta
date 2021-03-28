@@ -6,11 +6,13 @@ echo "RANGE: $RANGE"
 CHANGES=$(git diff-tree -r $RANGE)
 echo "CHANGES: $CHANGES"
 
-if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$CHANGES" == *"version.sbt"* ]]; then
-    PUBLISH="publish"
+if [[ "$PGP_PASSPHRASE" != "" && "$CHANGES" == *"version.sbt"* ]]; then
+  CLEAN="clean sonatypeBundleClean"
+  PUBLISH="+ci-publish"
 else
-    PUBLISH=""
+  CLEAN="clean"
+  PUBLISH=""
 fi
 
-echo sbt clean compile test $PUBLISH
-sbt clean compile test $PUBLISH
+echo sbt $CLEAN compile test $PUBLISH
+sbt $CLEAN compile test $PUBLISH
