@@ -1,12 +1,13 @@
 import com.jsuereth.sbtpgp.SbtPgp.autoImport.usePgpKeyHex
-import sbt.Keys._
+import sbt.Keys.{name, _}
 import sbt.{Def, _}
 
 
 object Delta {
-  def dependantProject(core: Project, name: String)(project: Project): Project = (project in file(name)
+  def dependantProject(core: Project, projectName: String)(project: Project): Project = (project in file(projectName)
     dependsOn core % "compile -> compile; test -> test"
     settings(commonSettings: _*)
+    settings(name := s"delta-$projectName")
   )
 
   lazy val commonSettings: Seq[Def.Setting[_]] = Seq(

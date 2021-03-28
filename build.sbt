@@ -5,13 +5,16 @@ import sbt._
 
 lazy val delta: Project = (project in file(".")
   aggregate(core, cats, scalaz, generic, argonaut, matchers)
-  settings (commonSettings: _*)
+  settings(commonSettings: _*)
   settings(publish / skip := true)
 )
 
 lazy val core: Project = (project in file("core")
-  settings (commonSettings: _*)
-  settings(libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6")
+  settings(commonSettings: _*)
+  settings(
+    name                := "delta-core",
+    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
+  )
 )
 
 lazy val cats: Project = (project configure dependantProject(core, "cats")
