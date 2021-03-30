@@ -23,7 +23,7 @@ lazy val cats: Project = (project configure dependantProject(core, "cats")
 )
 
 lazy val scalaz: Project = (project configure dependantProject(core, "scalaz")
-  settings(libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.0-M6")
+  settings(libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.3")
   settings addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.3")
 )
 
@@ -33,11 +33,11 @@ lazy val generic: Project = (project configure dependantProject(core, "generic")
 )
 
 lazy val argonaut: Project = (project configure dependantProject(core, "argonaut")
-  settings(libraryDependencies += "io.argonaut" %% "argonaut" % "6.2-RC1")
+  settings(libraryDependencies += "io.argonaut" %% "argonaut" % "6.3.3")
 )
 
 lazy val matchers: Project = (project configure dependantProject(core, "matchers")
-  dependsOn argonaut % "compile -> compile; test -> test"
+  dependsOn argonaut % "test -> test"
   settings(libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1")
 )
 

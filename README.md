@@ -1,8 +1,10 @@
 delta
 =====
 
-[![Build Status](https://api.travis-ci.org/stacycurl/pimpathon.png?branch=master)](https://travis-ci.org/stacycurl/delta)
-[![Bintray](https://api.bintray.com/packages/stacycurl/repo/delta-core/images/download.svg)](https://bintray.com/stacycurl/repo/delta-core/_latestVersion)
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/stacycurl/delta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+![Build Status](https://github.com/stacycurl/delta/actions/workflows/build.yml/badge.svg)
+[![Release Artifacts][badge-release]][link-release]
 
 Type safe delta
+
+[link-release]: https://oss.sonatype.org/content/repositories/releases/com/github/stacycurl/delta-core_2.12/ "Sonatype Releases"
+[badge-release]: https://img.shields.io/nexus/r/https/oss.sonatype.org/com.github.stacycurl/delta-core_2.12.svg "Sonatype Releases"

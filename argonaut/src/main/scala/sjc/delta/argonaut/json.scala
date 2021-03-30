@@ -40,7 +40,7 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
       case (pointer, Replace(_, rightJ)) ⇒ op(pointer, "replace", ("value" → rightJ) ->: jEmptyObject)
     }: _*)
 
-    private def op(pointer: Pointer, op: String, obj: Json) = ("op" → jString(op)) ->: ("path" → pointer.jString) ->: obj
+    private def op(pointer: Pointer, op: String, obj: Json): Json = ("op" → jString(op)) ->: ("path" → pointer.jString) ->: obj
   }
 
   private def changes(leftJ: Json, rightJ: Json)(implicit deltaJ: Aux[Json, Json]): List[(Pointer, Change)] = {
@@ -78,7 +78,7 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
     case Replace(left, right) ⇒ (lhsName → left)  ->: (rhsName → right) ->: jEmptyObject
   }
 
-  private def missing(name: String) = s"$name-missing" → Json.jTrue
+  private def missing(name: String): (String, Json) = s"$name-missing" → Json.jTrue
 
   private sealed trait Change
   private case class Add(rightJ: Json)                  extends Change
@@ -99,11 +99,11 @@ case class json(lhsName: String, rhsName: String, rfc6901Escaping: Boolean) { js
     def jString: Json = Json.jString(asString)
     def asString: String = if (elements.isEmpty) "" else "/" + elements.map(escape).mkString("/")
 
-    private def escape(element: String) = if (!rfc6901Escaping && element.startsWith("/")) s"[$element]" else {
+    private def escape(element: String): String = if (!rfc6901Escaping && element.startsWith("/")) s"[$element]" else {
       element.replaceAllLiterally("~", "~0").replaceAllLiterally("/", "~1")
     }
 
-    private def reverse = copy(elements.reverse)
+    private def reverse: Pointer = copy(elements.reverse)
   }
 
   private object JObject { def unapply(json: Json): Option[JsonObject] = json.obj   }

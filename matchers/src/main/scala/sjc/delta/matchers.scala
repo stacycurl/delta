@@ -32,7 +32,7 @@ object matchers {
       matchResult(delta, s"Detected the following differences:\n  ${patchB.indent(delta)}")
     }
 
-    private def matchResult(delta: B, positiveMsg: String) = {
+    private def matchResult(delta: B, positiveMsg: String): MatchResult = {
       if (positive) MatchResult(patchB.isEmpty(delta),  positiveMsg, "No differences detected")
       else          MatchResult(patchB.nonEmpty(delta), "No differences detected", positiveMsg)
     }

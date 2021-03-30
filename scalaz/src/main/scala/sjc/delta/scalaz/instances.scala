@@ -4,9 +4,8 @@ import scala.language.higherKinds
 
 import sjc.delta.Delta
 import sjc.delta.Delta.Aux
-import sjc.delta.std.either.{EitherPatch, BothLeft, BothRight, WasLeft, WasRight}
-
-import scalaz.{Applicative, Contravariant, Cozip, Equal, Monad, Profunctor, Representable, Show, Unzip, Zip, \/, -\/, \/-}
+import sjc.delta.std.either.{BothLeft, BothRight, EitherPatch, WasLeft, WasRight}
+import scalaz.{-\/, Applicative, Contravariant, Cord, Cozip, Equal, Monad, Profunctor, Representable, Show, Unzip, Zip, \/, \/-}
 
 
 object instances {
@@ -18,7 +17,7 @@ object instances {
 
   implicit def deltaMonad[In]: Monad[Aux[In, ?]] = new Monad[Aux[In, ?]] {
     def point[A](a: ⇒ A): Aux[In, A] = Delta.const[In, A](a)
-    def bind[A, B](deltaA: Aux[In, A])(aDeltaB: (A) ⇒ Aux[In, B]): Aux[In, B] = deltaA.flatMap(aDeltaB)
+    def bind[A, B](deltaA: Aux[In, A])(aDeltaB: A ⇒ Aux[In, B]): Aux[In, B] = deltaA.flatMap(aDeltaB)
   }
 
   implicit def deltaContravariant[Out]: Contravariant[Aux[?, Out]] = new Contravariant[Aux[?, Out]] {
@@ -86,12 +85,10 @@ object instances {
 
   implicit def eitherPatchShow[L, R, LOut, ROut](
     implicit lshow: Show[L], rshow: Show[R], loutShow: Show[LOut], routShow: Show[ROut]
-  ): Show[EitherPatch[L, R, LOut, ROut]] = new Show[EitherPatch[L, R, LOut, ROut]] {
-    override def shows(in: EitherPatch[L, R, LOut, ROut]): String = in match {
-      case BothLeft(out)         ⇒ s"BothLeft(${loutShow.show(out)})"
-      case BothRight(out)        ⇒ s"BothRight(${routShow.show(out)})"
-      case WasLeft(left, right)  ⇒ s"WasLeft(${lshow.show(left)}, ${rshow.show(right)})"
-      case WasRight(right, left) ⇒ s"WasRight(${rshow.show(right)}, S{lshow.show(left)})"
-    }
-  }
+  ): Show[EitherPatch[L, R, LOut, ROut]] = (in: EitherPatch[L, R, LOut, ROut]) => Cord(in match {
+    case BothLeft(out) ⇒ s"BothLeft(${loutShow.show(out)})"
+    case BothRight(out) ⇒ s"BothRight(${routShow.show(out)})"
+    case WasLeft(left, right) ⇒ s"WasLeft(${lshow.show(left)}, ${rshow.show(right)})"
+    case WasRight(right, left) ⇒ s"WasRight(${rshow.show(right)}, ${lshow.show(left)})"
+  })
 }
