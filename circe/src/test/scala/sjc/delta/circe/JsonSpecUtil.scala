@@ -1,29 +1,29 @@
-package sjc.delta.argonaut
+package sjc.delta.circe
 
-import argonaut.{CodecJson, Json, Parse, PrettyParams}
-
+import io.circe.{Codec, Json, JsonObject, parser}
 import org.scalatest.Matchers
 
 
 trait JsonSpecUtil extends Matchers {
+  val jEmptyObject: Json = Json.fromJsonObject(JsonObject.empty)
+
   implicit class JsonSpecOps(json: Json) {
     def jsonShouldEqual(expected: String): Unit = json jsonShouldEqual parse(expected)
-    def jsonShouldEqual(expected: Json): Unit = preserveOrder.pretty(json) shouldBe preserveOrder.pretty(expected)
+    def jsonShouldEqual(expected: Json): Unit = json.spaces2 shouldBe expected.spaces2
   }
 
-  def parse(content: String): Json = Parse.parse(content) match {
+  def parse(content: String): Json = parser.parse(content.replace("\n", "")) match {
     case Left(error) ⇒ sys.error("not json: " + error)
     case Right(json) ⇒ json
   }
 
   case class Person(age: Int, name: String, pet: Dog)
   case class Dog(age: Int, name: String)
-  implicit val codecDog: CodecJson[Dog] = CodecJson.casecodec2(Dog.apply, Dog.unapply)("age", "name")
-  implicit val codecPerson: CodecJson[Person] = CodecJson.casecodec3(Person.apply, Person.unapply)("age", "name", "pet")
+  implicit val codecDog: Codec[Dog] = Codec.forProduct2("age", "name")(Dog.apply)(Dog.unapply(_).get)
+  implicit val codecPerson: Codec[Person] = Codec.forProduct3("age", "name", "pet")(Person.apply)(Person.unapply(_).get)
 
   val complexBefore: Json = parse(
-    """
-      |{
+    """{
       |    "title": "Talk On Travel Pool",
       |    "link": "http://www.flickr.com/groups/talkontravel/pool/",
       |    "description": "Travel and vacation photos from around the world.",
@@ -48,8 +48,7 @@ trait JsonSpecUtil extends Matchers {
   )
 
   val complexAfter: Json = parse(
-    """
-      |{
+    """{
       |    "title": "Talk On Travel Bar",
       |    "link": "http://www.flickr.com/groups/talkontravel/bar/",
       |    "description": "Travel and vacation photos from around the world.",
@@ -72,6 +71,4 @@ trait JsonSpecUtil extends Matchers {
       |}
     """.stripMargin
   )
-
-  private val preserveOrder = PrettyParams.spaces2.copy(preserveOrder = true)
 }

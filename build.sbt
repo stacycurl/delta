@@ -4,7 +4,7 @@ import sbt._
 
 
 lazy val delta: Project = (project in file(".")
-  aggregate(core, cats, scalaz, generic, argonaut, matchers)
+  aggregate(core, cats, scalaz, generic, argonaut, circe, matchers)
   settings(commonSettings: _*)
   settings(publish / skip := true)
 )
@@ -36,8 +36,16 @@ lazy val argonaut: Project = (project configure dependantProject(core, "argonaut
   settings(libraryDependencies += "io.argonaut" %% "argonaut" % "6.3.3")
 )
 
+lazy val circe: Project = (project configure dependantProject(core, "circe")
+  settings(libraryDependencies ++= Seq(
+    "io.circe" %% "circe-core"   % "0.13.0",
+    "io.circe" %% "circe-parser" % "0.13.0"
+  ))
+)
+
 lazy val matchers: Project = (project configure dependantProject(core, "matchers")
   dependsOn argonaut % "test -> test"
+  dependsOn circe % "test -> test"
   settings(libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1")
 )
 

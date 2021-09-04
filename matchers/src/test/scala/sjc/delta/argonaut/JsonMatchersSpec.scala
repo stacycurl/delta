@@ -1,9 +1,8 @@
-package sjc.delta
+package sjc.delta.argonaut
 
 import _root_.argonaut.Json._
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{FreeSpec, Matchers}
-import sjc.delta.argonaut.JsonSpecUtil
 import sjc.delta.argonaut.json.actualExpected.flat.{encodeJsonToDelta, jsonDelta}
 import sjc.delta.matchers.syntax.anyDeltaMatcherOps
 import sjc.delta.matchers.{beDifferentTo, beIdenticalTo}
