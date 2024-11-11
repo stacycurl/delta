@@ -20,26 +20,26 @@ object Delta {
   def const[In, A](a: A): Aux[In, A] = new Delta.Const[In, A](a)
 
   class From[In] {
-    def curried[Out](f: In ⇒ In ⇒ Out): Aux[In, Out] = apply(Function.uncurried(f))
-    def apply[Out](f: (In, In) ⇒ Out): Aux[In, Out] = new Function[In, Out](f)
+    def curried[Out](f: In => In => Out): Aux[In, Out] = apply(Function.uncurried(f))
+    def apply[Out](f: (In, In) => Out): Aux[In, Out] = new Function[In, Out](f)
   }
 
   implicit class DeltaDeltaOps[A, B](val delta: Aux[A, B]) extends AnyVal {
-    def map[C](f: B ⇒ C):                      Aux[A, C]             = new Delta.Mapped[A, B, C](delta, f)
-    def flatMap[C](f: B ⇒ Aux[A, C]):          Aux[A, C]             = new Delta.FlatMapped[A, B, C](delta, f)
-    def contramap[In](f: In ⇒ A):              Aux[In, B]            = new Delta.Contramapped[A, B, In](delta, f)
-    def dimap[In, C](f: In ⇒ A, g: B ⇒ C):     Aux[In, C]            = new Delta.DiMapped[In, A, B, C](delta, f, g)
+    def map[C](f: B => C):                      Aux[A, C]             = new Delta.Mapped[A, B, C](delta, f)
+    def flatMap[C](f: B => Aux[A, C]):          Aux[A, C]             = new Delta.FlatMapped[A, B, C](delta, f)
+    def contramap[In](f: In => A):              Aux[In, B]            = new Delta.Contramapped[A, B, In](delta, f)
+    def dimap[In, C](f: In => A, g: B => C):     Aux[In, C]            = new Delta.DiMapped[In, A, B, C](delta, f, g)
     def zip[C](other: Aux[A, C]):              Aux[A, (B, C)]        = new Delta.Zipped[A, B, C](delta, other)
-    def applyTo[C](other: Aux[A, B ⇒ C]):      Aux[A, C]             = new Delta.Apply[A, B, C](other, delta)
+    def applyTo[C](other: Aux[A, B => C]):      Aux[A, C]             = new Delta.Apply[A, B, C](other, delta)
     def andThen[C](out: B)(implicit deltaOut2: Aux[B, C]): Aux[A, C] = new Delta.AndThen[A, B, C](out, delta, deltaOut2)
-    def lift[In]:                              Aux[In ⇒ A, In ⇒ B]   = new Delta.Lift[In, A, B](delta)
+    def lift[In]:                              Aux[In => A, In => B]   = new Delta.Lift[In, A, B](delta)
     def ***[C, D](other: Aux[C, D]):           Aux[(A, C), (B, D)]   = new Delta.Split[A, B, C, D](delta, other)
   }
 
   implicit class DeltaToTupleDeltaOps[A, B, C](val delta: Aux[A, (B, C)]) extends AnyVal {
     def unzip: (Aux[A, B], Aux[A, C]) = (_1, _2)
-    def _1: Aux[A, B] = Delta.from[A].curried(left ⇒ right ⇒ delta(left, right)._1)
-    def _2: Aux[A, C] = Delta.from[A].curried(left ⇒ right ⇒ delta(left, right)._2)
+    def _1: Aux[A, B] = Delta.from[A].curried(left => right => delta(left, right)._1)
+    def _2: Aux[A, C] = Delta.from[A].curried(left => right => delta(left, right)._2)
   }
 
   implicit class DeltaOps[In](val left: In) extends AnyVal {
@@ -47,7 +47,7 @@ object Delta {
   }
 
   object function {
-    implicit def lift[A, B, C](implicit delta: Aux[B, C]): Aux[A ⇒ B, A ⇒ C] = delta.lift[A]
+    implicit def lift[A, B, C](implicit delta: Aux[B, C]): Aux[A => B, A => C] = delta.lift[A]
   }
 
   object fallback {
@@ -62,7 +62,7 @@ object Delta {
     }
   }
 
-  private class Function[In, Out0](f: (In, In) ⇒ Out0) extends Delta[In] {
+  private class Function[In, Out0](f: (In, In) => Out0) extends Delta[In] {
     type Out = Out0
     def apply(left: In, right: In): Out = f(left, right)
   }
@@ -72,22 +72,22 @@ object Delta {
     def apply(left: A, right: A): Out = b
   }
 
-  private class Mapped[A, B, C](delta: Aux[A, B], f: B ⇒ C) extends Delta[A] {
+  private class Mapped[A, B, C](delta: Aux[A, B], f: B => C) extends Delta[A] {
     type Out = C
     def apply(left: A, right: A): Out = f(delta(left, right))
   }
 
-  private class FlatMapped[A, B, C](delta: Aux[A, B], f: B ⇒ Aux[A, C]) extends Delta[A] {
+  private class FlatMapped[A, B, C](delta: Aux[A, B], f: B => Aux[A, C]) extends Delta[A] {
     type Out = C
     def apply(left: A, right: A): C = f(delta(left, right))(left, right)
   }
 
-  private class Contramapped[A, B, C](delta: Aux[A, B], f: C ⇒ A) extends Delta[C] {
+  private class Contramapped[A, B, C](delta: Aux[A, B], f: C => A) extends Delta[C] {
     type Out = B
     def apply(left: C, right: C): Out = delta(f(left), f(right))
   }
 
-  private class DiMapped[A, B, C, D](delta: Aux[B, C], f: A ⇒ B, g: C ⇒ D) extends Delta[A] {
+  private class DiMapped[A, B, C, D](delta: Aux[B, C], f: A => B, g: C => D) extends Delta[A] {
     type Out = D
     def apply(left: A, right: A): D = g(delta(f(left), f(right)))
   }
@@ -102,7 +102,7 @@ object Delta {
     def apply(left: A, right: A): Out = (deltaAB(left, right), deltaCD(left, right))
   }
 
-  private class Apply[A, B, C](deltaABC: Aux[A, B ⇒ C], deltaAB: Aux[A, B]) extends Delta[A] {
+  private class Apply[A, B, C](deltaABC: Aux[A, B => C], deltaAB: Aux[A, B]) extends Delta[A] {
     type Out = C
     def apply(left: A, right: A): C = deltaABC(left, right).apply(deltaAB(left, right))
   }
@@ -121,9 +121,9 @@ object Delta {
     }
   }
 
-  private class Lift[A, B, C](delta: Aux[B, C]) extends Delta[A ⇒ B] {
-    type Out = A ⇒ C
-    def apply(left: A ⇒ B, right: A ⇒ B): Out = (a: A) ⇒ delta(left(a), right(a))
+  private class Lift[A, B, C](delta: Aux[B, C]) extends Delta[A => B] {
+    type Out = A => C
+    def apply(left: A => B, right: A => B): Out = (a: A) => delta(left(a), right(a))
   }
 }
 
@@ -131,7 +131,7 @@ trait Patch[P, Path] {
   def nonEmpty(patch: P): Boolean = !isEmpty(patch)
   def isEmpty(patch: P): Boolean
 
-  def indent(p: P) = pretty(p).replaceAllLiterally("\n", "\n  ")
+  def indent(p: P) = pretty(p).replace("\n", "\n  ")
   def pretty(p: P): String
 
   def ignore(p: P, paths: Path*): P
@@ -150,7 +150,7 @@ object Patch {
   def apply[P, Path](implicit patch: Patch[P, Path]): Patch[P, Path] = patch
 
   def create[P: ClassTag, PathP](
-    isEmptyFn: P ⇒ Boolean, prettyFn: P ⇒ String, ignoreFn: P ⇒ Set[PathP] ⇒ P
+    isEmptyFn: P => Boolean, prettyFn: P => String, ignoreFn: P => Set[PathP] => P
   ): Patch[P, PathP] = new Patch[P, PathP] {
     def isEmpty(patch: P): Boolean = isEmptyFn(patch)
     def pretty(p: P): String = prettyFn(p)

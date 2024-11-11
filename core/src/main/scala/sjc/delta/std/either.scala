@@ -10,10 +10,10 @@ object either {
       type Out = EitherPatch[L, R, LOut, ROut]
 
       def apply(eleft: Either[L, R], eright: Either[L, R]): EitherPatch[L, R, LOut, ROut] = (eleft, eright) match {
-        case (Left(left),  Left(right))  ⇒ BothLeft[LOut](ldelta(left, right))
-        case (Right(left), Right(right)) ⇒ BothRight[ROut](rdelta(left, right))
-        case (Left(left),  Right(right)) ⇒ WasLeft(left, right)
-        case (Right(left), Left(right))  ⇒ WasRight(left, right)
+        case (Left(left),  Left(right))  => BothLeft[LOut](ldelta(left, right))
+        case (Right(left), Right(right)) => BothRight[ROut](rdelta(left, right))
+        case (Left(left),  Right(right)) => WasLeft(left, right)
+        case (Right(left), Left(right))  => WasRight(left, right)
       }
     }
   }
@@ -29,12 +29,12 @@ object either {
       implicit lOut: Patch[LOut, Unit], rOut: Patch[ROut, Unit]
     ): Patch[EitherPatch[L, R, LOut, ROut], Unit] = Patch.create[EitherPatch[L, R, LOut, ROut], Unit](
       isEmptyFn = {
-        case BothLeft(lout)  ⇒ lOut.isEmpty(lout)
-        case BothRight(rout) ⇒ rOut.isEmpty(rout)
-        case _               ⇒ false
+        case BothLeft(lout)  => lOut.isEmpty(lout)
+        case BothRight(rout) => rOut.isEmpty(rout)
+        case _               => false
       },
       prettyFn = _.toString,
-      ignoreFn = ep ⇒ _ ⇒ ep
+      ignoreFn = ep => _ => ep
     )
   }
 }

@@ -12,8 +12,8 @@ trait JsonSpecUtil extends Matchers {
   }
 
   def parse(content: String): Json = Parse.parse(content) match {
-    case Left(error) ⇒ sys.error("not json: " + error)
-    case Right(json) ⇒ json
+    case Left(error) => sys.error("not json: " + error)
+    case Right(json) => json
   }
 
   case class Person(age: Int, name: String, pet: Dog)

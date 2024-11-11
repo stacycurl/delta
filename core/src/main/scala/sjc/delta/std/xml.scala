@@ -14,28 +14,28 @@ object xml extends xml("left", "right") {
 
 case class xml(lhsName: String, rhsName: String) {
   implicit val nodeDelta: Delta.Aux[Node, NodePatch] = new NodeDelta
-  implicit val elemDelta: Delta.Aux[Elem, NodePatch] = nodeDelta.contramap[Elem](e ⇒ e)
+  implicit val elemDelta: Delta.Aux[Elem, NodePatch] = nodeDelta.contramap[Elem](e => e)
 
   class NodeDelta extends Delta[Node] {
     type Out = NodePatch
 
     def apply(leftN: Node, rightN: Node): Out = NodePatch(recurse(Context(Nil), (leftN, rightN)).toList).reduce
 
-    private def recurse(context: Context, leftRight: (Node, Node)): Stream[SingleNodePatch] = leftRight match {
-      case (leftEE: Elem, rightE: Elem) if leftEE.label != rightE.label ⇒ context.diff(leftEE, rightE)
+    private def recurse(context: Context, leftRight: (Node, Node)): LazyList[SingleNodePatch] = leftRight match {
+      case (leftEE: Elem, rightE: Elem) if leftEE.label != rightE.label => context.diff(leftEE, rightE)
 
-      case (leftE: Elem, rightE: Elem) ⇒ {
+      case (leftE: Elem, rightE: Elem) => {
         lazy val (leftA, rightA) = leftE.attributeMap disjoint rightE.attributeMap
 
         if (leftA != rightA) context.diff(leftE.withAttributes(leftA), rightE.withAttributes(rightA)) else {
           childElems(leftE).zipExact(childElems(rightE)) match {
-            case (zipped, unzipped) ⇒ {
-              val res = zipped.toStream.flatMap(recurse(context + leftE, _))
+            case (zipped, unzipped) => {
+              val res = zipped.to(LazyList).flatMap(recurse(context + leftE, _))
 
               unzipped match {
-                case None ⇒ res
-                case Some(Left(missing)) ⇒ res ++ (context + leftE).missing(missing)
-                case Some(Right(extra)) ⇒ res ++ (context + leftE).extra(extra)
+                case None => res
+                case Some(Left(missing)) => res ++ (context + leftE).missing(missing)
+                case Some(Right(extra)) => res ++ (context + leftE).extra(extra)
               }
             }
           }
@@ -47,9 +47,9 @@ case class xml(lhsName: String, rhsName: String) {
   case class NodePatch(diffs: List[SingleNodePatch]) {
     def asXml: Node = <diffs>{diffs.map(_.asXml)}</diffs>
 
-    def reduce: NodePatch = NodePatch(diffs.foldLeft(Stream.empty[SingleNodePatch]) {
-      case (previous #:: rest, diff) ⇒ diff.reduce.lift(previous).fold(Stream(diff, previous))(Stream(_)) #::: rest
-      case (rest, diff)              ⇒ diff #:: rest
+    def reduce: NodePatch = NodePatch(diffs.foldLeft(LazyList.empty[SingleNodePatch]) {
+      case (previous #:: rest, diff) => diff.reduce.lift(previous).fold(LazyList(diff, previous))(LazyList(_)) #::: rest
+      case (rest, diff)              => diff #:: rest
     }.reverse.toList)
   }
 
@@ -63,7 +63,7 @@ case class xml(lhsName: String, rhsName: String) {
     def asXml: Node = <diff context={path}>{leftElem(left)}{rightElem(right)}</diff>
 
     val reduce: PartialFunction[SingleNodePatch, SingleNodePatch] = {
-      case Changed(`path`, left2, right2) if right2.xml_sameElements(left) ⇒ copy(left = left2)
+      case Changed(`path`, left2, right2) if right2.xml_sameElements(left) => copy(left = left2)
     }
   }
 
@@ -75,7 +75,7 @@ case class xml(lhsName: String, rhsName: String) {
     def asXml: Node = <diff context={path}>{leftElem()}{rightElem(extra: _*)}</diff>
 
     val reduce: PartialFunction[SingleNodePatch, SingleNodePatch] = {
-      case Changed(`path`, left, right) if left.xml_sameElements(extra) ⇒ copy(extra = right)
+      case Changed(`path`, left, right) if left.xml_sameElements(extra) => copy(extra = right)
     }
   }
 
@@ -87,7 +87,7 @@ case class xml(lhsName: String, rhsName: String) {
     def asXml: Node = <diff context={path}>{leftElem(missing: _*)}{rightElem()}</diff>
 
     val reduce: PartialFunction[SingleNodePatch, SingleNodePatch] = {
-      case Changed(`path`, left, right) if right.xml_sameElements(missing) ⇒ copy(missing = left)
+      case Changed(`path`, left, right) if right.xml_sameElements(missing) => copy(missing = left)
     }
   }
 
@@ -95,27 +95,27 @@ case class xml(lhsName: String, rhsName: String) {
   private case class Context(elements: List[String]) {
     def +(elem: Elem): Context = copy(elem.label :: elements)
 
-    def diff(left: Node, right: Node): Stream[SingleNodePatch] = Stream(Changed(path, left, right))
-    def missing(missing: NodeSeq): Stream[SingleNodePatch] = Stream(Missing(path, missing))
-    def extra(extra: NodeSeq): Stream[SingleNodePatch] = Stream(Extra(path, extra))
+    def diff(left: Node, right: Node): LazyList[SingleNodePatch] = LazyList(Changed(path, left, right))
+    def missing(missing: NodeSeq): LazyList[SingleNodePatch] = LazyList(Missing(path, missing))
+    def extra(extra: NodeSeq): LazyList[SingleNodePatch] = LazyList(Extra(path, extra))
 
     private def path = "/" + elements.reverse.mkString("/")
   }
 
   private implicit class ElemOps(elem: Elem) {
     def attributeMap: Attributes = new Attributes(
-      elem.attributes.foldAttributes[Map[String, String]](Map())(key ⇒ value ⇒ map ⇒ map + ((key, value)))
+      elem.attributes.foldAttributes[Map[String, String]](Map())(key => value => map => map + ((key, value)))
     )
 
     def withAttributes(attributes: Attributes): Elem = elem.copy(attributes = attributes.metaData)
   }
 
   private implicit class MetaDataOps(metaData: MetaData) {
-    def foldAttributes[A](zero: A)(f: String ⇒ String ⇒ A ⇒ A): A = {
+    def foldAttributes[A](zero: A)(f: String => String => A => A): A = {
       @tailrec def recurse(acc: A, current: MetaData): A = current match {
-        //              case PrefixedAttribute(_, key, Text(value), next) ⇒ recurse(f(key)(value)(acc), next)
-        case UnprefixedAttribute(key, Text(value), next)  ⇒ recurse(f(key)(value)(acc), next)
-        case Null ⇒ acc
+        //              case PrefixedAttribute(_, key, Text(value), next) => recurse(f(key)(value)(acc), next)
+        case UnprefixedAttribute(key, Text(value), next)  => recurse(f(key)(value)(acc), next)
+        case Null => acc
       }
 
       recurse(zero, metaData)
@@ -128,12 +128,12 @@ case class xml(lhsName: String, rhsName: String) {
     def contains(kv: (String, String)): Boolean = values.get(kv._1).contains(kv._2)
 
     def metaData: MetaData = values.foldLeft(Null: MetaData) {
-      case (acc, (key, value)) ⇒ new UnprefixedAttribute(key, Text(value), acc)
+      case (acc, (key, value)) => new UnprefixedAttribute(key, Text(value), acc)
     }
   }
 
   private def childElems(elem: Elem): List[Node] = elem.child.toList.filter {
-    case e: Elem ⇒ true
+    case e: Elem => true
   }
 
   private def leftElem(children: Node*): Elem = elem(lhsName, children: _*)

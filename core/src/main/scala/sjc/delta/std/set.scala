@@ -20,7 +20,7 @@ object set {
     implicit def setPatch[A]: Patch[SetPatch[A], A] = SetPatchInstance.asInstanceOf[Patch[SetPatch[A], A]]
 
     private val SetPatchInstance = Patch.create[SetPatch[Nothing], Nothing](
-      _.isEmpty, _.toString, patch ⇒ paths ⇒ patch.ignore(paths)
+      _.isEmpty, _.toString, patch => paths => patch.ignore(paths)
     )
   }
 }

@@ -25,7 +25,7 @@ trait Reify[A] {
   def asString(value: A): String = apply(value).asString
   def apply(value: A): Reified
 
-  def contramap[B](f: B ⇒ A, start: String = null, end: String = ")")(implicit ct: ClassTag[B]): Reify[B] =
+  def contramap[B](f: B => A, start: String = null, end: String = ")")(implicit ct: ClassTag[B]): Reify[B] =
     new Reify.Contramapped[A, B](f, this, Option(start).getOrElse(ct.runtimeClass.getSimpleName), end)
 }
 
@@ -42,11 +42,11 @@ object Reify {
 
   implicit val doubleReify: Reify[Double] = reifyA[Double]
 
-  implicit val floatReify: Reify[Float] = reify[Float](_ + "F")
+  implicit val floatReify: Reify[Float] = reify[Float](value => s"${value}F")
 
   implicit val intReify: Reify[Int] = reifyA[Int]
 
-  implicit val longReify: Reify[Long] = reify[Long](_ + "L")
+  implicit val longReify: Reify[Long] = reify[Long](value => s"${value}L")
 
   implicit val stringReify: Reify[String] = reify[String]("\"" + _ + "\"")
 
@@ -54,7 +54,7 @@ object Reify {
     reify[Option[A]](_.map(reifyA.asString).toString)
 
   implicit def eitherReify[L, R](implicit reifyL: Reify[L], reifyR: Reify[R]): Reify[Either[L, R]] =
-    reify[Either[L, R]](_.fold(l ⇒ s"Left(${reifyL.asString(l)})", r ⇒ s"Right(${reifyR.asString(r)})"))
+    reify[Either[L, R]](_.fold(l => s"Left(${reifyL.asString(l)})", r => s"Right(${reifyR.asString(r)})"))
 
   implicit def listReify[A](implicit reifyA: Reify[A]): Reify[List[A]] =
     reify[List[A]](_.map(reifyA.asString).toString)
@@ -63,17 +63,17 @@ object Reify {
     reify[Set[A]](_.map(reifyA.asString).toString)
 
   implicit def mapReify[K, V](implicit reifyK: Reify[K], reifyV: Reify[V]): Reify[Map[K, V]] =
-    reify[Map[K, V]](_.map { case (k, v) ⇒ (reifyK.asString(k), reifyV.asString(v)) }.toString)
+    reify[Map[K, V]](_.map { case (k, v) => (reifyK.asString(k), reifyV.asString(v)) }.toString)
 
-  private class Contramapped[A, B](f: B ⇒ A, reifyA: Reify[A], start: String, end: String) extends Reify[B] {
+  private class Contramapped[A, B](f: B => A, reifyA: Reify[A], start: String, end: String) extends Reify[B] {
     def apply(value: B): Reified = ReifiedProduct(List(reifyA(f(value))), start + "(", ", ", end)
   }
 
   def reifyA[A]: Reify[A] = reify[A](_.toString)
 
-  def reify[A](f: A ⇒ String): Reify[A] = reifyIt(a ⇒ ReifiedValue(f(a)))
+  def reify[A](f: A => String): Reify[A] = reifyIt(a => ReifiedValue(f(a)))
 
-  def reifyIt[A](f: A ⇒ Reified): Reify[A] = new Reify[A] {
+  def reifyIt[A](f: A => Reified): Reify[A] = new Reify[A] {
     def apply(value: A): Reified = f(value)
   }
 }

@@ -10,9 +10,9 @@ object map {
     type Out = MapPatch[K, V, VOut]
 
     def apply(left: Map[K, V], right: Map[K, V]): MapPatch[K, V, VOut] = {
-      val changed: Map[K, VOut] = (left.keySet & right.keySet).map(k ⇒ {
-        k → deltaV(left(k), right(k))
-      })(scala.collection.breakOut)
+      val changed: Map[K, VOut] = (left.keySet & right.keySet).map(k => {
+        k -> deltaV(left(k), right(k))
+      }).toMap
 
       MapPatch[K, V, VOut](right -- left.keySet, left -- right.keySet, changed)
     }
@@ -28,7 +28,7 @@ object map {
       MapPatchInstance.asInstanceOf[Patch[MapPatch[K, V, VOut], K]]
 
     private val MapPatchInstance = Patch.create[MapPatch[Nothing, Nothing, Nothing], Nothing](
-      _.isEmpty, _.toString, patch ⇒ paths ⇒ patch.ignore(paths)
+      _.isEmpty, _.toString, patch => paths => patch.ignore(paths)
     )
   }
 }

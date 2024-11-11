@@ -24,7 +24,7 @@ object matchers {
     ): DeltaMatcher[A, C, PathC] =
       new DeltaMatcher[A, C, PathC](expected, true)(deltaA.andThen(expectedDelta), patchB.to[C, PathC])
 
-    def ignoring(paths: PathB*): DeltaMatcher[A, B, PathB] = map(b ⇒ patchB.ignore(b, paths: _*))
+    def ignoring(paths: PathB*): DeltaMatcher[A, B, PathB] = map(b => patchB.ignore(b, paths: _*))
 
     def apply(actual: A): MatchResult = {
       val delta = deltaA(actual, expected)
@@ -37,7 +37,7 @@ object matchers {
       else          MatchResult(patchB.nonEmpty(delta), "No differences detected", positiveMsg)
     }
 
-    private[delta] def map[C, PathC](f: B ⇒ C)(implicit patchC: Patch[C, PathC]): DeltaMatcher[A, C, PathC] =
+    private[delta] def map[C, PathC](f: B => C)(implicit patchC: Patch[C, PathC]): DeltaMatcher[A, C, PathC] =
       new DeltaMatcher[A, C, PathC](expected, positive)(deltaA.map(f), patchC)
   }
 

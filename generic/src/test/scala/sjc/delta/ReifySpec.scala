@@ -14,7 +14,7 @@ class ReifySpec extends FreeSpec with Matchers {
 
   "generic reify" in {
     HasInt(123).reify.asString shouldBe """HasInt(123)"""
-    MapAndInt(123, Map(123 → "456")).reify.asString shouldBe """MapAndInt(123, Map(123 -> "456"))"""
+    MapAndInt(123, Map(123 -> "456")).reify.asString shouldBe """MapAndInt(123, Map(123 -> "456"))"""
 
     RP("123", Some(RP("456", None, Left(444))), Right(RP("789", None, Left(777)))).reify.asString shouldBe(
       """RP("123", Some(RP("456", None, Left(444))), Right(RP("789", None, Left(777))))"""

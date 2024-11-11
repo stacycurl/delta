@@ -15,11 +15,11 @@ class DeltaSpec extends FreeSpec with Matchers {
   }
 
   "create delta from function" in {
-    implicit val doubleDelta = Delta.from[Double] { case (left, right) ⇒ right - left }
+    implicit val doubleDelta = Delta.from[Double] { case (left, right) => right - left }
 
     1.5.delta(2.0) shouldBe 0.5
 
-    implicit val stringDelta = Delta.from[String].curried(left ⇒ right ⇒ (left, right))
+    implicit val stringDelta = Delta.from[String].curried(left => right => (left, right))
 
     "foo".delta("bar") shouldBe ("foo", "bar")
   }
@@ -42,8 +42,8 @@ class DeltaSpec extends FreeSpec with Matchers {
     import sjc.delta.std.int.deltaInt
     import sjc.delta.Delta.function.lift
 
-    val square = (i: Int) ⇒ i * i
-    val cube = (i: Int) ⇒ i * i * i
+    val square = (i: Int) => i * i
+    val cube = (i: Int) => i * i * i
 
     val delta = square.delta(cube)
 

@@ -18,11 +18,11 @@ object Delta {
     ),
     usePgpKeyHex("pimpathon ci"),
     organization             := "com.github.stacycurl",
-    scalaVersion             := "2.12.12",
+    scalaVersion             := "2.13.15",
     maxErrors                := 1,
     Test / parallelExecution := true,
     scalacOptions            := Seq("-feature", "-Xfatal-warnings", "-deprecation", "-unchecked"),
-    libraryDependencies      += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+    libraryDependencies      += "org.scalatest" %% "scalatest" % "3.0.8" % "test",
     initialize := {
       val _ = initialize.value
       require(sys.props("java.specification.version") == "1.8", "Java 8 is required for this project.")

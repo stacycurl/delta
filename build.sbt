@@ -13,23 +13,23 @@ lazy val core: Project = (project in file("core")
   settings(commonSettings: _*)
   settings(
     name                := "delta-core",
-    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
+    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.2.0"
   )
 )
 
 lazy val cats: Project = (project configure dependantProject(core, "cats")
-  settings(libraryDependencies += "org.typelevel" %% "cats" % "0.8.1")
-  settings addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.3")
+  settings(libraryDependencies += "org.typelevel" %% "cats-core" % "2.0.0")
+  settings addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
 )
 
 lazy val scalaz: Project = (project configure dependantProject(core, "scalaz")
   settings(libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.3")
-  settings addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.3")
+  settings addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
 )
 
 lazy val generic: Project = (project configure dependantProject(core, "generic")
   dependsOn matchers % "test -> test"
-  settings(libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2")
+  settings(libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.3")
 )
 
 lazy val argonaut: Project = (project configure dependantProject(core, "argonaut")
@@ -46,13 +46,13 @@ lazy val circe: Project = (project configure dependantProject(core, "circe")
 lazy val matchers: Project = (project configure dependantProject(core, "matchers")
   dependsOn argonaut % "test -> test"
   dependsOn circe % "test -> test"
-  settings(libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1")
+  settings(libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8")
 )
 
 //lazy val runAll = TaskKey[Unit]("run-all")
 //
 //def runAllIn(config: Configuration) = {
 //  runAll in config <<= (discoveredMainClasses in config, runner in run, fullClasspath in config, streams) map {
-//    (classes, runner, cp, s) ⇒ classes.foreach(c ⇒ runner.run(c, Attributed.data(cp), Seq(), s.log))
+//    (classes, runner, cp, s) => classes.foreach(c => runner.run(c, Attributed.data(cp), Seq(), s.log))
 //  }
 //}

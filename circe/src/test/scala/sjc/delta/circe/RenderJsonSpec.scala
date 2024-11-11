@@ -22,7 +22,7 @@ class RenderJsonSpec extends FreeSpec with JsonSpecUtil {
   }
 
   def render(json: Json): Node = json match {
-    case JObject(obj) ⇒
+    case JObject(obj) =>
       <table>
         <tr><td>{Text("{")}</td><td colspan="3"></td></tr>
         {
@@ -32,7 +32,7 @@ class RenderJsonSpec extends FreeSpec with JsonSpecUtil {
         }
         <tr><td>{Text("}")}</td><td colspan="3"></td></tr>
       </table>
-    case JArray(elements) ⇒
+    case JArray(elements) =>
       <table>
         <tr><td>[</td><td/></tr>
         {
@@ -42,7 +42,7 @@ class RenderJsonSpec extends FreeSpec with JsonSpecUtil {
         }
         <tr><td>]</td><td/></tr>
       </table>
-    case _                ⇒ Text(json.noSpaces.toString)
+    case _                => Text(json.noSpaces.toString)
   }
 
   private val JObject = Extractor[Json, JsonObject](_.asObject)
@@ -53,7 +53,7 @@ class RenderJsonSpec extends FreeSpec with JsonSpecUtil {
   }
 
   object Extractor {
-    def apply[A, B](f: A ⇒ Option[B]): Extractor[A, B] = new Extractor[A, B] {
+    def apply[A, B](f: A => Option[B]): Extractor[A, B] = new Extractor[A, B] {
       def unapply(a: A): Option[B] = f(a)
     }
   }

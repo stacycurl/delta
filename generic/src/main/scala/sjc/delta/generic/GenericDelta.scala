@@ -1,11 +1,10 @@
 package sjc.delta.generic
 
 import scala.language.implicitConversions
-
 import shapeless._
-import sjc.delta.{Patch, Delta}
-
+import sjc.delta.{Delta, Patch}
 import scala.reflect.ClassTag
+import sjc.delta.generic.GenericDelta.deltaPoly
 
 
 object GenericDelta {
@@ -62,10 +61,10 @@ object GenericDelta {
       type Out = Option[deltaT.value.Out] :+: T :+: T :+: CNil
 
       def apply(before: Option[T], after: Option[T]): Out = (before, after) match {
-        case (None, None)       ⇒ Inl(None)
-        case (Some(b), Some(a)) ⇒ Inl(Some(deltaT.value.apply(b, a)))
-        case (Some(b), None)    ⇒ Inr(Inl(b))
-        case (None, Some(a))    ⇒ Inr(Inr(Inl(a)))
+        case (None, None)       => Inl(None)
+        case (Some(b), Some(a)) => Inl(Some(deltaT.value.apply(b, a)))
+        case (Some(b), None)    => Inr(Inl(b))
+        case (None, Some(a))    => Inr(Inr(Inl(a)))
       }
     }
   */
@@ -84,16 +83,16 @@ object GenericDelta {
     type Out = CPatch[H, hDelta.Out, T, tDelta.value.Out]
 
     def apply(left: H :+: T, right: H :+: T): CPatch[H, hDelta.Out, T, tDelta.value.Out] = (left, right) match {
-      case (Inl(lLeft), Inl(lRight)) ⇒ Inl(Inl(hDelta(lLeft, lRight)))
-      case (Inr(rLeft), Inr(rRight)) ⇒ Inr(tDelta.value(rLeft, rRight))
-      case (Inl(lLeft), Inr(rRight)) ⇒ Inl(Inr(Inl((lLeft, rRight))))
-      case (Inr(rLeft), Inl(lRight)) ⇒ Inl(Inr(Inr(Inl((rLeft, lRight)))))
+      case (Inl(lLeft), Inl(lRight)) => Inl(Inl(hDelta(lLeft, lRight)))
+      case (Inr(rLeft), Inr(rRight)) => Inr(tDelta.value(rLeft, rRight))
+      case (Inl(lLeft), Inr(rRight)) => Inl(Inr(Inl((lLeft, rRight))))
+      case (Inr(rLeft), Inl(lRight)) => Inl(Inr(Inr(Inl((rLeft, lRight)))))
     }
   }
 
   object deltaPoly extends Poly2 {
-    implicit def delta[In](implicit delta: Delta[In]) = at[In, In] {
-      case (left, right) ⇒ delta(left, right)
+    implicit def delta[In](implicit delta: Delta[In]): deltaPoly.Case[In, In] {type Result = delta.Out} = at[In, In] {
+      case (left, right) => delta(left, right)
     }
   }
 }
@@ -113,7 +112,7 @@ object GenericSymbolDelta {
     type Out = (String, deltaV.value.Out) :: deltaT.value.Out
 
     def apply(left: FieldType[K, V] :: T, right: FieldType[K, V] :: T): Out = {
-      val head = (key.value.name → deltaV.value.apply(left.head, right.head))
+      val head = (key.value.name -> deltaV.value.apply(left.head, right.head))
       val tail = deltaT.value.apply(left.tail, right.tail)
 
       head :: tail
@@ -132,10 +131,10 @@ object GenericSymbolDelta {
     type Out = (String, deltaV.value.Out) :+: deltaT.value.Out
 
     def apply(left: FieldType[K, V] :+: T, right: FieldType[K, V] :+: T): Out = (left, right) match {
-      case (Inl(lLeft), Inl(lRight)) ⇒ sys.error("inl inl")
-      case (Inr(rLeft), Inr(rRight)) ⇒ sys.error("inr inr")
-      case (Inl(lLeft), Inr(rRight)) ⇒ sys.error("inl inr")
-      case (Inr(rLeft), Inl(lRight)) ⇒ sys.error("inr inl")
+      case (Inl(lLeft), Inl(lRight)) => sys.error("inl inl")
+      case (Inr(rLeft), Inr(rRight)) => sys.error("inr inr")
+      case (Inl(lLeft), Inr(rRight)) => sys.error("inl inr")
+      case (Inr(rLeft), Inl(lRight)) => sys.error("inr inl")
     }
   }
 

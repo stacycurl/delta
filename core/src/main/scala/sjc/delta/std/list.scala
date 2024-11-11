@@ -4,7 +4,7 @@ import sjc.delta.{Patch, Delta}
 import sjc.delta.util.DeltaListOps
 
 import scala.annotation.tailrec
-import scala.collection.{mutable ⇒ M}
+import scala.collection.{mutable => M}
 
 
 object list {
@@ -18,7 +18,7 @@ object list {
         val (zipped, unzipped) = left.zipExact(right)
 
         val diffs: List[Change[A, B]] = zipped.zipWithIndex.flatMap {
-          case ((lhs, rhs), index) ⇒ {
+          case ((lhs, rhs), index) => {
             val diff = deltaA(lhs, rhs)
 
             if (patchB.isEmpty(diff)) None else Some(Diff(index, diff))
@@ -28,9 +28,9 @@ object list {
         val zipLength = zipped.length
 
         unzipped match {
-          case None ⇒ diffs
-          case Some(Left(missing)) ⇒ diffs ++ missing.zipWithIndex.map { case (m, index) ⇒ Missing(index + zipLength, m) }
-          case Some(Right(extra))  ⇒ diffs ++ extra.zipWithIndex.map   { case (e, index) ⇒ Extra(index + zipLength, e)   }
+          case None => diffs
+          case Some(Left(missing)) => diffs ++ missing.zipWithIndex.map { case (m, index) => Missing(index + zipLength, m) }
+          case Some(Right(extra))  => diffs ++ extra.zipWithIndex.map   { case (e, index) => Extra(index + zipLength, e)   }
         }
       }
     }
@@ -78,7 +78,7 @@ object list {
         val matches = matchingSequences(left.toVector, right.toVector)
 
         val (result, _, _) = matches.foldLeft((List.empty[UntypedChange], 0, 0)) {
-          case ((acc, leftIndex, rightIndex), head) ⇒
+          case ((acc, leftIndex, rightIndex), head) =>
             (equal(head) ?:: insert(head, rightIndex) ?:: remove(head, leftIndex) ?:: acc, head.afterLeft, head.afterRight)
         }
 
@@ -119,7 +119,7 @@ object list {
             val uniqueLCSs = uniqueLongestCommonSubSequences(left.slice(lowL, highL), right.slice(lowR, highR))
 
             val ((lastPosL, lastPosR), initialResult) = uniqueLCSs.foldLeft(((lowL - 1, lowR - 1), List[(Int, Int)]())) {
-              case (((lastLPos, lastRPos), accMatches), (lIndex, rIndex)) ⇒ {
+              case (((lastLPos, lastRPos), accMatches), (lIndex, rIndex)) => {
                 val (lPos, rPos) = (lIndex + lowL, rIndex + lowR)
 
                 val matches = if (lastLPos + 1 == lPos || lastRPos + 1 == rPos) Nil else {
@@ -164,8 +164,8 @@ object list {
       private def collapse(list: List[(Int, Int)], leftLength: Int, rightLength: Int): List[SubSeq] = {
         @tailrec def recurse(startL: Int, startR: Int, length: Int, acc: List[SubSeq], current: List[(Int, Int)]): List[SubSeq] = {
           current match {
-            case Nil ⇒ if (length == 0) acc else new SubSeq(startL, startR, length) :: acc
-            case (l, r) :: tail ⇒ {
+            case Nil => if (length == 0) acc else new SubSeq(startL, startR, length) :: acc
+            case (l, r) :: tail => {
               if (startL != -1 && l == (startL + length) && r == (startR + length)) recurse(startL, startR, length + 1, acc, tail) else {
                 recurse(l, r, 1, if (startL != -1) new SubSeq(startL, startR, length) :: acc else acc, tail)
               }
@@ -183,33 +183,33 @@ object list {
         val rtol = Array.ofDim[Int](right.length)
 
         left.zipWithIndex.foreach {
-          case (lhs, index) ⇒ {
-            if (index1.contains(lhs)) index1 += (lhs → -1) else index1 += (lhs → index)
+          case (lhs, index) => {
+            if (index1.contains(lhs)) index1 += (lhs -> -1) else index1 += (lhs -> index)
           }
         }
 
         right.zipWithIndex.foreach {
-          case (rhs, i) ⇒ {
+          case (rhs, i) => {
             rtol(i) = -1
 
-            index1.get(rhs).filterNot(_ == -1).foreach(next ⇒ {
+            index1.get(rhs).filterNot(_ == -1).foreach(next => {
               index2.get(rhs).filterNot(_ == -1) match {
-                case Some(btoai) ⇒ {
+                case Some(btoai) => {
                   rtol(btoai) = -1
-                  index1 += (rhs → -1)
-                  index2 += (rhs → i)
+                  index1 += (rhs -> -1)
+                  index2 += (rhs -> i)
                 }
-                case None ⇒ {
+                case None => {
                   rtol(i) = next
                   ltor(next) = i
-                  index2 += (rhs → i)
+                  index2 += (rhs -> i)
                 }
               }
             })
           }
         }
 
-        backReferenceLongestCommonSubSequences(rtol.toList.filter(_ != -1)).map(x ⇒ (x, ltor(x))).reverse
+        backReferenceLongestCommonSubSequences(rtol.toList.filter(_ != -1)).map(x => (x, ltor(x))).reverse
       }
 
       def backReferenceLongestCommonSubSequences(values: List[Int]): List[Int] =
@@ -218,12 +218,12 @@ object list {
       private case class Piles(piles: List[Pile]) {
         def add(value: Int): Piles = {
           @tailrec def recurse(skipped: List[Pile], remaining: List[Pile]): Piles = remaining match {
-            case head :: tail if head.top < value ⇒ recurse(head :: skipped, tail)
-            case head :: tail ⇒ Piles(
+            case head :: tail if head.top < value => recurse(head :: skipped, tail)
+            case head :: tail => Piles(
               (head.add(value, skipped.headOption.map(_.top)) :: skipped).reverse ++ tail
             )
-            case Nil ⇒ Piles(
-              (Pile(value, skipped.headOption.fold(Map.empty[Int, Int])(pile ⇒ Map(value → pile.top))) :: skipped).reverse
+            case Nil => Piles(
+              (Pile(value, skipped.headOption.fold(Map.empty[Int, Int])(pile => Map(value -> pile.top))) :: skipped).reverse
             )
           }
 
@@ -232,21 +232,21 @@ object list {
 
         def follow: List[Int] = {
           @tailrec def recurse(acc: List[Int], next: Option[Int], remaining: List[Pile]): List[Int] = (next, remaining) match {
-            case (None, _)                   ⇒ acc.reverse
-            case (Some(value), Nil)          ⇒ recurse(value :: acc, None, Nil)
-            case (Some(value), head :: tail) ⇒ recurse(value :: acc, head.get(value), tail)
+            case (None, _)                   => acc.reverse
+            case (Some(value), Nil)          => recurse(value :: acc, None, Nil)
+            case (Some(value), head :: tail) => recurse(value :: acc, head.get(value), tail)
           }
 
           piles.reverse match {
-            case head :: tail ⇒ recurse(List(head.top), head.next, tail)
-            case Nil          ⇒ Nil
+            case head :: tail => recurse(List(head.top), head.next, tail)
+            case Nil          => Nil
           }
         }
       }
 
       private case class Pile(top: Int, values: Map[Int, Int]) {
         def add(value: Int, backReference: Option[Int]): Pile =
-          Pile(value, backReference.fold(values)(ref ⇒ values + (value → ref)) )
+          Pile(value, backReference.fold(values)(ref => values + (value -> ref)) )
 
         def next: Option[Int] = get(top)
         def get(value: Int): Option[Int] = values.get(value)
@@ -256,20 +256,20 @@ object list {
         def merge(changes: List[UntypedChange]): List[UntypedChange] = {
           val (remaining, result) = changes.foldLeft((None: Option[UntypedChange], List.empty[UntypedChange])) {
             case ((Some(UntypedRemoved(SubSeq(leftIndex, _,  leftLength, _))), accChanges),
-            UntypedInserted(SubSeq(_, rightIndex, _, rightLength))) if leftLength == rightLength ⇒ {
+            UntypedInserted(SubSeq(_, rightIndex, _, rightLength))) if leftLength == rightLength => {
               (None, UntypedReplaced(SubSeq(leftIndex, rightIndex, leftLength, rightLength)) :: accChanges)
             }
             case ((Some(UntypedInserted(SubSeq(_, rightIndex, _, rightLength))), accInstructions),
-            UntypedRemoved(SubSeq(leftIndex, _, leftLength, _))) if leftLength == rightLength ⇒ {
+            UntypedRemoved(SubSeq(leftIndex, _, leftLength, _))) if leftLength == rightLength => {
               (None, UntypedReplaced(SubSeq(leftIndex, rightIndex, leftLength, rightLength)) :: accInstructions)
             }
-            case ((Some(left: UntypedEqual), accInstructions), right: UntypedEqual) if left.adjoins(right) ⇒ {
+            case ((Some(left: UntypedEqual), accInstructions), right: UntypedEqual) if left.adjoins(right) => {
               val joined = left.adjoin(right)
 
               (Some(joined), accInstructions)
             }
-            case ((Some(prev), accInstructions), instruction) ⇒ (Some(instruction), prev :: accInstructions)
-            case ((None, accInstructions), instruction)       ⇒ (Some(instruction), accInstructions)
+            case ((Some(prev), accInstructions), instruction) => (Some(instruction), prev :: accInstructions)
+            case ((None, accInstructions), instruction)       => (Some(instruction), accInstructions)
           }
 
           remaining.fold(result)(_ :: result).reverse

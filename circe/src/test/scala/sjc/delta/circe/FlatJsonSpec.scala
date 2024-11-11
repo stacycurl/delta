@@ -1,6 +1,6 @@
 package sjc.delta.circe
 
-import io.circe.Json.{Null, fromBoolean, fromInt, fromValues, fromString ⇒ jString}
+import io.circe.Json.{Null, fromBoolean, fromInt, fromValues, fromString => jString}
 import org.scalatest.FreeSpec
 import sjc.delta.Delta.DeltaOps
 import sjc.delta.circe.json.beforeAfter.flat.{encodeJsonToDelta, jsonDelta}

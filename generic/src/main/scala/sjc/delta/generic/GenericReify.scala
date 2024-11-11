@@ -13,7 +13,7 @@ object GenericReify {
     implicit reifyH: Lazy[Reify[H]], reifyT: Lazy[Reify[T]]
   ): Reify[H :: T] = new Reify[H :: T] {
     def apply(value: ::[H, T]): Reified = reifyT.value.apply(value.tail).asInstanceOf[ReifiedProduct] match {
-      case rp: ReifiedProduct ⇒ reifyH.value.apply(value.head) :: rp
+      case rp: ReifiedProduct => reifyH.value.apply(value.head) :: rp
     }
   }
 
@@ -21,7 +21,7 @@ object GenericReify {
     gen: Generic.Aux[In, Repr], reify: Lazy[Reify[Repr]]
   ): Reify[In] = new Reify[In] {
     def apply(value: In): Reified = reify.value.apply(gen.to(value)).asInstanceOf[ReifiedProduct] match {
-      case rp: ReifiedProduct ⇒ rp.copy(start = value.getClass.getSimpleName + "(", sep = ", ", end = ")")
+      case rp: ReifiedProduct => rp.copy(start = value.getClass.getSimpleName + "(", sep = ", ", end = ")")
     }
   }
 }
